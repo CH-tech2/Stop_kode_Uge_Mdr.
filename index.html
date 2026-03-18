@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stop Kode Beregner V1.5</title>
+    <title>Stop Kode Beregner V2.2</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -223,7 +223,7 @@
     <div class="container">
         <h1>⏱️ Stop Kode Beregner</h1>
         <p class="subtitle">Indsæt data fra Excel — beregn stop tid pr. maskine og stopkode</p>
-        <p class="version">Version 1.5</p>
+        <p class="version">Version 2.2</p>
 
         <div class="input-section">
             <label>📋 Indsæt data fra Excel her:</label>
@@ -248,7 +248,7 @@ Eksempel:
             <div class="buttons">
                 <button class="btn btn-calc" id="btnBeregn">⚡ Beregn</button>
                 <button class="btn btn-clear" id="btnRyd">🗑️ Ryd</button>
-                <button class="btn btn-pdf" id="btnPdf" style="display:none;">📄 Download PDF</button>
+                <button class="btn btn-pdf" id="btnPdf">📄 Download PDF</button>
             </div>
             <div class="error-msg" id="errorMsg"></div>
         </div>
@@ -262,27 +262,27 @@ Eksempel:
 
     <script>
         /* ============================================
-           STOP KODE BEREGNER V1.5
+           STOP KODE BEREGNER V2.2
            ============================================ */
 
-        // Stop-koder
+        // Stop-koder (1-16)
         var STOPKODER = {
             1: "Betjeningsfejl",
             2: "Granulering",
             3: "Klingeskift",
             4: "Maskinfejl",
-            5: "Elfejl",
+            5: "El fejl",
             6: "Uldmangel",
             7: "Udsugningsstop",
             8: "Rengøring",
-            9: "Uld-kvalitet",
-            10: "Folieskift",
+            9: "Uld kvalitet",
+            10: "Folie skift",
             11: "Maskinstop",
             12: "Force majeure",
             13: "Hente uld",
             14: "Mangler AGV/Udkøre",
             15: "Mangler Hjælpe materialer",
-            16: "Hjælp på anden maskine"
+            16: "Hjælp på anden Maskine"
         };
 
         // Fast rækkefølge af maskiner
@@ -304,7 +304,7 @@ Eksempel:
             "Båndsav Linje"
         ];
 
-        // Global variabel til at holde parsed resultater for PDF
+        // Global variabel til at holde parsed resultater
         var globalResults = null;
 
         // Normalisering
@@ -399,11 +399,10 @@ Eksempel:
                 var kode = parseInt(kodeStr, 10);
                 var tid = parseFloat(tidStr);
 
-                if (!dato || isNaN(kode) || kode < 1 || kode > 16 || isNaN(tid)) {
+                if (!dato || isNaN(kode) || kode < 1 || kode > 16 || isNaN(tid) || tid < 0) {
                     ignoredLines++;
                     continue;
                 }
 
                 var matchedMaskine = findMaskineMatch(maskineStr);
-                if (!matchedMaskine) {
-                    unknownMachine
+                if (!
