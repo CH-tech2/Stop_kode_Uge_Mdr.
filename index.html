@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stop Kode Beregner V2.2</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -28,17 +28,17 @@
         .subtitle {
             text-align: center;
             color: #888;
-            margin-bottom: 30px;
+            margin-bottom: 10px;
             font-size: 14px;
         }
         .version {
             text-align: center;
-            color: #555;
-            font-size: 11px;
-            margin-bottom: 20px;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 12px;
         }
         .container {
-            max-width: 900px;
+            max-width: 1100px;
             margin: 0 auto;
         }
         .input-section {
@@ -62,7 +62,7 @@
         }
         textarea {
             width: 100%;
-            height: 200px;
+            height: 220px;
             background: #0f0f23;
             color: #e0e0e0;
             border: 1px solid #333;
@@ -110,31 +110,25 @@
             color: white;
         }
         .btn-pdf:hover {
-            background: #186462;
+            background: #186c6a;
         }
-        .group-select {
+        .filters {
             margin-top: 15px;
             display: flex;
             gap: 15px;
+            flex-wrap: wrap;
             align-items: center;
         }
-        .group-select label {
-            display: inline;
+        .filters label {
             margin-bottom: 0;
             font-size: 14px;
-            color: #208684;
         }
-        .group-select select {
+        .filters select {
             background: #0f0f23;
             color: #e0e0e0;
             border: 1px solid #333;
-            border-radius: 6px;
+            border-radius: 8px;
             padding: 8px 12px;
-            font-size: 14px;
-        }
-        .group-select select:focus {
-            outline: none;
-            border-color: #208684;
         }
         .result-section {
             background: #16213e;
@@ -151,10 +145,8 @@
         }
         .result-section h3 {
             color: #D20014;
-            margin: 20px 0 10px 0;
-            font-size: 17px;
-            border-bottom: 1px solid #0f3460;
-            padding-bottom: 5px;
+            margin: 25px 0 10px 0;
+            font-size: 18px;
         }
         table {
             width: 100%;
@@ -186,15 +178,6 @@
             border-top: 2px solid #208684;
             font-size: 15px;
         }
-        .code-val {
-            color: #f0a500;
-        }
-        .time-val {
-            color: #4fc3f7;
-        }
-        .total-val {
-            color: #e0e0e0;
-        }
         .ignored-info {
             margin-top: 15px;
             padding: 10px 15px;
@@ -211,11 +194,10 @@
             margin-top: 10px;
             display: none;
         }
-        .periode-info {
-            color: #208684;
-            font-size: 13px;
-            margin-bottom: 10px;
-            font-style: italic;
+        .period-title {
+            color: #f0a500;
+            margin: 20px 0 10px 0;
+            font-size: 16px;
         }
     </style>
 </head>
@@ -227,29 +209,30 @@
 
         <div class="input-section">
             <label>📋 Indsæt data fra Excel her:</label>
-            <p>Forventet format: <strong>Dato (DD/MM/YYYY) [TAB] Maskine [TAB] Stopkode (1-16) [TAB] Tid (min)</strong></p>
+            <p>Forventet format: <strong>Dato [TAB] Maskine [TAB] Stopkode [TAB] Tid</strong><br>Eksempel: <strong>18/03/2026	Krymperen	4	50</strong></p>
+
             <textarea id="dataInput" placeholder="Indsæt dine Excel-data her...
 
-Eksempel:
-15/03/2026	Krymperen	4	50
-15/03/2026	PSM01	5	30
-16/03/2026	Krymperen	1	20
-16/03/2026	Sav 42	3	15"></textarea>
+18/03/2026	Krymperen	4	50
+18/03/2026	PSM01	5	30
+19/03/2026	Krymperen	1	20
+19/03/2026	Sav 42	3	15"></textarea>
 
-            <div class="group-select">
-                <label>📅 Gruppér efter:</label>
+            <div class="filters">
+                <label for="groupBy">📅 Gruppér efter:</label>
                 <select id="groupBy">
-                    <option value="none">Ingen gruppering (samlet)</option>
+                    <option value="samlet">Samlet</option>
                     <option value="uge">Uge</option>
                     <option value="maaned">Måned</option>
                 </select>
             </div>
 
             <div class="buttons">
-                <button class="btn btn-calc" id="btnBeregn">⚡ Beregn</button>
-                <button class="btn btn-clear" id="btnRyd">🗑️ Ryd</button>
-                <button class="btn btn-pdf" id="btnPdf">📄 Download PDF</button>
+                <button class="btn btn-calc" onclick="beregn()">⚡ Beregn</button>
+                <button class="btn btn-clear" onclick="ryd()">🗑️ Ryd</button>
+                <button class="btn btn-pdf" onclick="downloadPDF()" id="pdfBtn" style="display:none;">📄 Download PDF</button>
             </div>
+
             <div class="error-msg" id="errorMsg"></div>
         </div>
 
@@ -261,19 +244,14 @@ Eksempel:
     </div>
 
     <script>
-        /* ============================================
-           STOP KODE BEREGNER V2.2
-           ============================================ */
-
-        // Stop-koder (1-16)
-        var STOPKODER = {
+        const STOPKODER = {
             1: "Betjeningsfejl",
             2: "Granulering",
             3: "Klingeskift",
             4: "Maskinfejl",
             5: "El fejl",
             6: "Uldmangel",
-            7: "Udsugningsstop",
+            7: "Udsuningsstop",
             8: "Rengøring",
             9: "Uld kvalitet",
             10: "Folie skift",
@@ -281,12 +259,11 @@ Eksempel:
             12: "Force majeure",
             13: "Hente uld",
             14: "Mangler AGV/Udkøre",
-            15: "Mangler Hjælpe materialer",
+            15: "Mangler Hjælpe martialer",
             16: "Hjælp på anden Maskine"
         };
 
-        // Fast rækkefølge af maskiner
-        var MASKINE_ORDER = [
+        const MASKINE_ORDER = [
             "PSM01",
             "PSM02",
             "Teclict sav01",
@@ -304,70 +281,99 @@ Eksempel:
             "Båndsav Linje"
         ];
 
-        // Global variabel til at holde parsed resultater
-        var globalResults = null;
+        let sidsteBeregning = null;
 
-        // Normalisering
         function normalizeName(name) {
             return name.trim().toLowerCase().replace(/\s+/g, ' ');
         }
 
-        // Find match i MASKINE_ORDER
         function findMaskineMatch(inputName) {
-            var norm = normalizeName(inputName);
-            for (var i = 0; i < MASKINE_ORDER.length; i++) {
+            const norm = normalizeName(inputName);
+
+            for (let i = 0; i < MASKINE_ORDER.length; i++) {
                 if (normalizeName(MASKINE_ORDER[i]) === norm) {
                     return MASKINE_ORDER[i];
                 }
             }
-            for (var i = 0; i < MASKINE_ORDER.length; i++) {
-                var orderNorm = normalizeName(MASKINE_ORDER[i]);
-                if (orderNorm.indexOf(norm) !== -1 || norm.indexOf(orderNorm) !== -1) {
+
+            for (let i = 0; i < MASKINE_ORDER.length; i++) {
+                const orderNorm = normalizeName(MASKINE_ORDER[i]);
+                if (orderNorm.includes(norm) || norm.includes(orderNorm)) {
                     return MASKINE_ORDER[i];
                 }
             }
-            return null;
+
+            return inputName.trim();
         }
 
-        // Parse dato DD/MM/YYYY
         function parseDato(str) {
-            var parts = str.trim().split('/');
+            const parts = str.trim().split('/');
             if (parts.length !== 3) return null;
-            var d = parseInt(parts[0], 10);
-            var m = parseInt(parts[1], 10);
-            var y = parseInt(parts[2], 10);
-            if (isNaN(d) || isNaN(m) || isNaN(y)) return null;
-            return new Date(y, m - 1, d);
+
+            const day = parseInt(parts[0], 10);
+            const month = parseInt(parts[1], 10);
+            const year = parseInt(parts[2], 10);
+
+            if (isNaN(day) || isNaN(month) || isNaN(year)) return null;
+
+            const d = new Date(year, month - 1, day);
+            if (d.getFullYear() !== year || d.getMonth() !== month - 1 || d.getDate() !== day) {
+                return null;
+            }
+            return d;
         }
 
-        // ISO uge-nummer
         function getWeekNumber(date) {
-            var d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-            var dayNum = d.getUTCDay() || 7;
+            const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+            const dayNum = d.getUTCDay() || 7;
             d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-            var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-            var weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-            return { year: d.getUTCFullYear(), week: weekNo };
+            const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+            const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+            return { week: weekNo, year: d.getUTCFullYear() };
         }
 
-        // Månednavne
-        var MAANEDER = ["Januar", "Februar", "Marts", "April", "Maj", "Juni",
-            "Juli", "August", "September", "Oktober", "November", "December"];
+        function getMonthKey(date) {
+            const monthNames = [
+                "Januar", "Februar", "Marts", "April", "Maj", "Juni",
+                "Juli", "August", "September", "Oktober", "November", "December"
+            ];
+            return monthNames[date.getMonth()] + " " + date.getFullYear();
+        }
 
-        // ======= BEREGN =======
+        function getGroupKey(date, mode) {
+            if (mode === "uge") {
+                const week = getWeekNumber(date);
+                return "Uge " + week.week + " - " + week.year;
+            }
+            if (mode === "maaned") {
+                return getMonthKey(date);
+            }
+            return "Samlet";
+        }
+
+        function createEmptyCodes() {
+            const obj = {};
+            for (let i = 1; i <= 16; i++) {
+                obj[i] = 0;
+            }
+            return obj;
+        }
+
         function beregn() {
-            var raw = document.getElementById('dataInput').value.trim();
-            var errorEl = document.getElementById('errorMsg');
-            var resultSection = document.getElementById('resultSection');
-            var resultContent = document.getElementById('resultContent');
-            var ignoredInfo = document.getElementById('ignoredInfo');
-            var groupBy = document.getElementById('groupBy').value;
-            var btnPdf = document.getElementById('btnPdf');
+            const raw = document.getElementById('dataInput').value.trim();
+            const errorEl = document.getElementById('errorMsg');
+            const resultSection = document.getElementById('resultSection');
+            const resultContent = document.getElementById('resultContent');
+            const ignoredInfo = document.getElementById('ignoredInfo');
+            const pdfBtn = document.getElementById('pdfBtn');
+            const groupBy = document.getElementById('groupBy').value;
 
             errorEl.style.display = 'none';
             resultSection.style.display = 'none';
-            btnPdf.style.display = 'none';
+            pdfBtn.style.display = 'none';
             resultContent.innerHTML = '';
+            ignoredInfo.textContent = '';
+            sidsteBeregning = null;
 
             if (!raw) {
                 errorEl.textContent = '⚠️ Indsæt venligst data først!';
@@ -375,34 +381,206 @@ Eksempel:
                 return;
             }
 
-            var lines = raw.split('\n');
-            var entries = [];
-            var ignoredLines = 0;
-            var unknownMachineNames = {};
+            const lines = raw.split('\n');
+            const grupper = {};
+            let ignoredLines = 0;
+            let parsedLines = 0;
 
-            for (var li = 0; li < lines.length; li++) {
-                var line = lines[li].trim();
+            for (let line of lines) {
+                line = line.trim();
                 if (!line) continue;
 
-                var parts = line.split('\t');
+                const parts = line.split('\t');
                 if (parts.length < 4) {
                     ignoredLines++;
                     continue;
                 }
 
-                var datoStr = parts[0].trim();
-                var maskineStr = parts[1].trim();
-                var kodeStr = parts[2].trim();
-                var tidStr = parts[3].trim();
+                const dato = parseDato(parts[0]);
+                const maskine = findMaskineMatch(parts[1]);
+                const stopkode = parseInt(parts[2], 10);
+                const tid = parseFloat(String(parts[3]).replace(',', '.'));
 
-                var dato = parseDato(datoStr);
-                var kode = parseInt(kodeStr, 10);
-                var tid = parseFloat(tidStr);
-
-                if (!dato || isNaN(kode) || kode < 1 || kode > 16 || isNaN(tid) || tid < 0) {
+                if (!dato || !maskine || isNaN(stopkode) || stopkode < 1 || stopkode > 16 || isNaN(tid)) {
                     ignoredLines++;
                     continue;
                 }
 
-                var matchedMaskine = findMaskineMatch(maskineStr);
-                if (!
+                const gruppeKey = getGroupKey(dato, groupBy);
+
+                if (!grupper[gruppeKey]) {
+                    grupper[gruppeKey] = {};
+                }
+
+                if (!grupper[gruppeKey][maskine]) {
+                    grupper[gruppeKey][maskine] = createEmptyCodes();
+                }
+
+                grupper[gruppeKey][maskine][stopkode] += tid;
+                parsedLines++;
+            }
+
+            if (parsedLines === 0) {
+                errorEl.textContent = '⚠️ Ingen gyldige datarækker fundet. Format skal være: Dato [TAB] Maskine [TAB] Stopkode [TAB] Tid';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            sidsteBeregning = grupper;
+
+            const gruppeNavne = Object.keys(grupper);
+
+            for (const gruppe of gruppeNavne) {
+                if (groupBy !== 'samlet') {
+                    const title = document.createElement('div');
+                    title.className = 'period-title';
+                    title.textContent = gruppe;
+                    resultContent.appendChild(title);
+                }
+
+                const kendteMaskiner = [];
+                const ukendteMaskiner = [];
+
+                for (const maskine in grupper[gruppe]) {
+                    if (MASKINE_ORDER.includes(maskine)) {
+                        kendteMaskiner.push(maskine);
+                    } else {
+                        ukendteMaskiner.push(maskine);
+                    }
+                }
+
+                kendteMaskiner.sort((a, b) => MASKINE_ORDER.indexOf(a) - MASKINE_ORDER.indexOf(b));
+                ukendteMaskiner.sort();
+
+                const alleMaskiner = [...kendteMaskiner, ...ukendteMaskiner];
+
+                for (const maskine of alleMaskiner) {
+                    const h3 = document.createElement('h3');
+                    h3.textContent = maskine;
+                    resultContent.appendChild(h3);
+
+                    const table = document.createElement('table');
+                    const thead = document.createElement('thead');
+                    thead.innerHTML = `
+                        <tr>
+                            <th>Stopkode</th>
+                            <th>Beskrivelse</th>
+                            <th>Tid (min)</th>
+                        </tr>
+                    `;
+                    table.appendChild(thead);
+
+                    const tbody = document.createElement('tbody');
+                    let maskineTotal = 0;
+
+                    for (let kode = 1; kode <= 16; kode++) {
+                        const tid = grupper[gruppe][maskine][kode] || 0;
+                        if (tid > 0) {
+                            maskineTotal += tid;
+                            const tr = document.createElement('tr');
+                            tr.innerHTML = `
+                                <td>${kode}</td>
+                                <td>${STOPKODER[kode]}</td>
+                                <td>${tid}</td>
+                            `;
+                            tbody.appendChild(tr);
+                        }
+                    }
+
+                    const totalTr = document.createElement('tr');
+                    totalTr.className = 'total-row';
+                    totalTr.innerHTML = `
+                        <td colspan="2">TOTAL</td>
+                        <td>${maskineTotal}</td>
+                    `;
+                    tbody.appendChild(totalTr);
+
+                    table.appendChild(tbody);
+                    resultContent.appendChild(table);
+                }
+            }
+
+            ignoredInfo.textContent = `✅ ${parsedLines} rækker behandlet.${ignoredLines > 0 ? ' | ⏭️ ' + ignoredLines + ' rækker ignoreret.' : ''}`;
+            resultSection.style.display = 'block';
+            pdfBtn.style.display = 'inline-block';
+        }
+
+        function ryd() {
+            document.getElementById('dataInput').value = '';
+            document.getElementById('resultSection').style.display = 'none';
+            document.getElementById('errorMsg').style.display = 'none';
+            document.getElementById('pdfBtn').style.display = 'none';
+            document.getElementById('resultContent').innerHTML = '';
+            document.getElementById('ignoredInfo').textContent = '';
+            sidsteBeregning = null;
+        }
+
+        function downloadPDF() {
+            if (!sidsteBeregning) {
+                alert('Beregn data først før du laver PDF.');
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            let firstPage = true;
+
+            const grupper = Object.keys(sidsteBeregning);
+
+            for (const gruppe of grupper) {
+                const kendteMaskiner = [];
+                const ukendteMaskiner = [];
+
+                for (const maskine in sidsteBeregning[gruppe]) {
+                    if (MASKINE_ORDER.includes(maskine)) {
+                        kendteMaskiner.push(maskine);
+                    } else {
+                        ukendteMaskiner.push(maskine);
+                    }
+                }
+
+                kendteMaskiner.sort((a, b) => MASKINE_ORDER.indexOf(a) - MASKINE_ORDER.indexOf(b));
+                ukendteMaskiner.sort();
+
+                const alleMaskiner = [...kendteMaskiner, ...ukendteMaskiner];
+
+                for (const maskine of alleMaskiner) {
+                    if (!firstPage) doc.addPage();
+                    firstPage = false;
+
+                    doc.setFontSize(16);
+                    doc.text('Stop Kode Beregner V2.2', 14, 15);
+
+                    doc.setFontSize(12);
+                    doc.text('Periode: ' + gruppe, 14, 25);
+                    doc.text('Maskine: ' + maskine, 14, 32);
+
+                    const body = [];
+                    let total = 0;
+
+                    for (let kode = 1; kode <= 16; kode++) {
+                        const tid = sidsteBeregning[gruppe][maskine][kode] || 0;
+                        if (tid > 0) {
+                            total += tid;
+                            body.push([String(kode), STOPKODER[kode], String(tid)]);
+                        }
+                    }
+
+                    body.push(['', 'TOTAL', String(total)]);
+
+                    doc.autoTable({
+                        startY: 40,
+                        head: [['Stopkode', 'Beskrivelse', 'Tid (min)']],
+                        body: body,
+                        theme: 'grid',
+                        headStyles: { fillColor: [15, 52, 96] },
+                        alternateRowStyles: { fillColor: [245, 245, 245] }
+                    });
+                }
+            }
+
+            doc.save('stopkode_beregner_v2_2.pdf');
+        }
+    </script>
+</body>
+</html>
