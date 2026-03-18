@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stop Tider - Beregning</title>
+    <title>Stop Kode Beregner V1.5</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -28,6 +30,12 @@
             color: #888;
             margin-bottom: 30px;
             font-size: 14px;
+        }
+        .version {
+            text-align: center;
+            color: #555;
+            font-size: 11px;
+            margin-bottom: 20px;
         }
         .container {
             max-width: 900px;
@@ -72,6 +80,7 @@
             margin-top: 15px;
             display: flex;
             gap: 10px;
+            flex-wrap: wrap;
         }
         .btn {
             padding: 12px 30px;
@@ -96,6 +105,37 @@
         .btn-clear:hover {
             background: #555;
         }
+        .btn-pdf {
+            background: #208684;
+            color: white;
+        }
+        .btn-pdf:hover {
+            background: #186462;
+        }
+        .group-select {
+            margin-top: 15px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        .group-select label {
+            display: inline;
+            margin-bottom: 0;
+            font-size: 14px;
+            color: #208684;
+        }
+        .group-select select {
+            background: #0f0f23;
+            color: #e0e0e0;
+            border: 1px solid #333;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 14px;
+        }
+        .group-select select:focus {
+            outline: none;
+            border-color: #208684;
+        }
         .result-section {
             background: #16213e;
             border-radius: 12px;
@@ -108,6 +148,13 @@
             color: #208684;
             margin-bottom: 15px;
             font-size: 20px;
+        }
+        .result-section h3 {
+            color: #D20014;
+            margin: 20px 0 10px 0;
+            font-size: 17px;
+            border-bottom: 1px solid #0f3460;
+            padding-bottom: 5px;
         }
         table {
             width: 100%;
@@ -139,10 +186,10 @@
             border-top: 2px solid #208684;
             font-size: 15px;
         }
-        .mek-val {
+        .code-val {
             color: #f0a500;
         }
-        .el-val {
+        .time-val {
             color: #4fc3f7;
         }
         .total-val {
@@ -164,49 +211,82 @@
             margin-top: 10px;
             display: none;
         }
+        .periode-info {
+            color: #208684;
+            font-size: 13px;
+            margin-bottom: 10px;
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>⏱️ Stop Tider Beregning</h1>
-        <p class="subtitle">Indsæt data fra Excel — beregn Mek/El tid pr. maskine</p>
+        <h1>⏱️ Stop Kode Beregner</h1>
+        <p class="subtitle">Indsæt data fra Excel — beregn stop tid pr. maskine og stopkode</p>
+        <p class="version">Version 1.5</p>
 
         <div class="input-section">
             <label>📋 Indsæt data fra Excel her:</label>
-            <p>Forventet format: <strong>min | Maskine | fejl | Mek/EL</strong> (tab-separeret fra Excel). Subtotal-rækker og fejlbeskrivelser ignoreres automatisk.</p>
+            <p>Forventet format: <strong>Dato (DD/MM/YYYY) [TAB] Maskine [TAB] Stopkode (1-16) [TAB] Tid (min)</strong></p>
             <textarea id="dataInput" placeholder="Indsæt dine Excel-data her...
 
 Eksempel:
-50	Krymperen	Smed på løftegrej	Mek
-10	Krymperen	Fejl på folie	El
-30	PSM01	Motor stoppet	Mek"></textarea>
+15/03/2026	Krymperen	4	50
+15/03/2026	PSM01	5	30
+16/03/2026	Krymperen	1	20
+16/03/2026	Sav 42	3	15"></textarea>
+
+            <div class="group-select">
+                <label>📅 Gruppér efter:</label>
+                <select id="groupBy">
+                    <option value="none">Ingen gruppering (samlet)</option>
+                    <option value="uge">Uge</option>
+                    <option value="maaned">Måned</option>
+                </select>
+            </div>
+
             <div class="buttons">
-                <button class="btn btn-calc" onclick="beregn()">⚡ Beregn</button>
-                <button class="btn btn-clear" onclick="ryd()">🗑️ Ryd</button>
+                <button class="btn btn-calc" id="btnBeregn">⚡ Beregn</button>
+                <button class="btn btn-clear" id="btnRyd">🗑️ Ryd</button>
+                <button class="btn btn-pdf" id="btnPdf" style="display:none;">📄 Download PDF</button>
             </div>
             <div class="error-msg" id="errorMsg"></div>
         </div>
 
         <div class="result-section" id="resultSection">
-            <h2>📊 Resultat — Stop Tider pr. Maskine</h2>
-            <table id="resultTable">
-                <thead>
-                    <tr>
-                        <th>Maskine</th>
-                        <th>Mek (min)</th>
-                        <th>El (min)</th>
-                        <th>Total (min)</th>
-                    </tr>
-                </thead>
-                <tbody id="resultBody"></tbody>
-            </table>
+            <h2>📊 Resultat — Stop Tider pr. Maskine & Stopkode</h2>
+            <div id="resultContent"></div>
             <div class="ignored-info" id="ignoredInfo"></div>
         </div>
     </div>
 
     <script>
+        /* ============================================
+           STOP KODE BEREGNER V1.5
+           ============================================ */
+
+        // Stop-koder
+        var STOPKODER = {
+            1: "Betjeningsfejl",
+            2: "Granulering",
+            3: "Klingeskift",
+            4: "Maskinfejl",
+            5: "Elfejl",
+            6: "Uldmangel",
+            7: "Udsugningsstop",
+            8: "Rengøring",
+            9: "Uld-kvalitet",
+            10: "Folieskift",
+            11: "Maskinstop",
+            12: "Force majeure",
+            13: "Hente uld",
+            14: "Mangler AGV/Udkøre",
+            15: "Mangler Hjælpe materialer",
+            16: "Hjælp på anden maskine"
+        };
+
         // Fast rækkefølge af maskiner
-        const MASKINE_ORDER = [
+        var MASKINE_ORDER = [
             "PSM01",
             "PSM02",
             "Teclict sav01",
@@ -224,38 +304,70 @@ Eksempel:
             "Båndsav Linje"
         ];
 
-        // Normalisering: gør match mere fleksibelt
+        // Global variabel til at holde parsed resultater for PDF
+        var globalResults = null;
+
+        // Normalisering
         function normalizeName(name) {
             return name.trim().toLowerCase().replace(/\s+/g, ' ');
         }
 
-        // Find bedste match i MASKINE_ORDER
+        // Find match i MASKINE_ORDER
         function findMaskineMatch(inputName) {
-            const norm = normalizeName(inputName);
-            for (let i = 0; i < MASKINE_ORDER.length; i++) {
+            var norm = normalizeName(inputName);
+            for (var i = 0; i < MASKINE_ORDER.length; i++) {
                 if (normalizeName(MASKINE_ORDER[i]) === norm) {
                     return MASKINE_ORDER[i];
                 }
             }
-            // Delvist match
-            for (let i = 0; i < MASKINE_ORDER.length; i++) {
-                const orderNorm = normalizeName(MASKINE_ORDER[i]);
-                if (orderNorm.includes(norm) || norm.includes(orderNorm)) {
+            for (var i = 0; i < MASKINE_ORDER.length; i++) {
+                var orderNorm = normalizeName(MASKINE_ORDER[i]);
+                if (orderNorm.indexOf(norm) !== -1 || norm.indexOf(orderNorm) !== -1) {
                     return MASKINE_ORDER[i];
                 }
             }
             return null;
         }
 
+        // Parse dato DD/MM/YYYY
+        function parseDato(str) {
+            var parts = str.trim().split('/');
+            if (parts.length !== 3) return null;
+            var d = parseInt(parts[0], 10);
+            var m = parseInt(parts[1], 10);
+            var y = parseInt(parts[2], 10);
+            if (isNaN(d) || isNaN(m) || isNaN(y)) return null;
+            return new Date(y, m - 1, d);
+        }
+
+        // ISO uge-nummer
+        function getWeekNumber(date) {
+            var d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+            var dayNum = d.getUTCDay() || 7;
+            d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+            var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+            var weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+            return { year: d.getUTCFullYear(), week: weekNo };
+        }
+
+        // Månednavne
+        var MAANEDER = ["Januar", "Februar", "Marts", "April", "Maj", "Juni",
+            "Juli", "August", "September", "Oktober", "November", "December"];
+
+        // ======= BEREGN =======
         function beregn() {
-            const raw = document.getElementById('dataInput').value.trim();
-            const errorEl = document.getElementById('errorMsg');
-            const resultSection = document.getElementById('resultSection');
-            const resultBody = document.getElementById('resultBody');
-            const ignoredInfo = document.getElementById('ignoredInfo');
+            var raw = document.getElementById('dataInput').value.trim();
+            var errorEl = document.getElementById('errorMsg');
+            var resultSection = document.getElementById('resultSection');
+            var resultContent = document.getElementById('resultContent');
+            var ignoredInfo = document.getElementById('ignoredInfo');
+            var groupBy = document.getElementById('groupBy').value;
+            var btnPdf = document.getElementById('btnPdf');
 
             errorEl.style.display = 'none';
             resultSection.style.display = 'none';
+            btnPdf.style.display = 'none';
+            resultContent.innerHTML = '';
 
             if (!raw) {
                 errorEl.textContent = '⚠️ Indsæt venligst data først!';
@@ -263,141 +375,34 @@ Eksempel:
                 return;
             }
 
-            const lines = raw.split('\n');
-            const data = {}; // { maskinNavn: { mek: 0, el: 0 } }
-            const unknownMachines = {};
-            let ignoredLines = 0;
-            let parsedLines = 0;
+            var lines = raw.split('\n');
+            var entries = [];
+            var ignoredLines = 0;
+            var unknownMachineNames = {};
 
-            for (let line of lines) {
-                line = line.trim();
+            for (var li = 0; li < lines.length; li++) {
+                var line = lines[li].trim();
                 if (!line) continue;
 
-                // Split på tab
-                const parts = line.split('\t');
-
-                // Ignorer subtotal-rækker (kun ét felt eller første felt er tal og intet andet relevant)
-                if (parts.length < 3) {
+                var parts = line.split('\t');
+                if (parts.length < 4) {
                     ignoredLines++;
                     continue;
                 }
 
-                const minVal = parseFloat(parts[0]);
-                const maskine = parts[1] ? parts[1].trim() : '';
-                // parts[2] = fejl (ignoreres)
-                const mekEl = parts[3] ? parts[3].trim().toLowerCase() : '';
+                var datoStr = parts[0].trim();
+                var maskineStr = parts[1].trim();
+                var kodeStr = parts[2].trim();
+                var tidStr = parts[3].trim();
 
-                // Valider
-                if (isNaN(minVal) || !maskine || (mekEl !== 'mek' && mekEl !== 'el')) {
+                var dato = parseDato(datoStr);
+                var kode = parseInt(kodeStr, 10);
+                var tid = parseFloat(tidStr);
+
+                if (!dato || isNaN(kode) || kode < 1 || kode > 16 || isNaN(tid)) {
                     ignoredLines++;
                     continue;
                 }
 
-                // Find maskine i fast rækkefølge
-                let matchedName = findMaskineMatch(maskine);
-
-                if (matchedName) {
-                    if (!data[matchedName]) {
-                        data[matchedName] = { mek: 0, el: 0 };
-                    }
-                    if (mekEl === 'mek') {
-                        data[matchedName].mek += minVal;
-                    } else {
-                        data[matchedName].el += minVal;
-                    }
-                    parsedLines++;
-                } else {
-                    // Ukendt maskine — tilføj alligevel men markér
-                    if (!unknownMachines[maskine]) {
-                        unknownMachines[maskine] = { mek: 0, el: 0 };
-                    }
-                    if (mekEl === 'mek') {
-                        unknownMachines[maskine].mek += minVal;
-                    } else {
-                        unknownMachines[maskine].el += minVal;
-                    }
-                    parsedLines++;
-                }
-            }
-
-            if (parsedLines === 0) {
-                errorEl.textContent = '⚠️ Ingen gyldige datarækker fundet. Tjek at formatet er: min [TAB] Maskine [TAB] fejl [TAB] Mek/El';
-                errorEl.style.display = 'block';
-                return;
-            }
-
-            // Byg tabel
-            resultBody.innerHTML = '';
-            let totalMek = 0;
-            let totalEl = 0;
-
-            // Først kendte maskiner i fast rækkefølge
-            for (const maskine of MASKINE_ORDER) {
-                if (data[maskine]) {
-                    const mek = data[maskine].mek;
-                    const el = data[maskine].el;
-                    const total = mek + el;
-                    totalMek += mek;
-                    totalEl += el;
-
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td>${maskine}</td>
-                        <td class="mek-val">${mek > 0 ? mek : '-'}</td>
-                        <td class="el-val">${el > 0 ? el : '-'}</td>
-                        <td class="total-val">${total}</td>
-                    `;
-                    resultBody.appendChild(tr);
-                }
-            }
-
-            // Derefter ukendte maskiner (hvis nogen)
-            for (const maskine of Object.keys(unknownMachines)) {
-                const mek = unknownMachines[maskine].mek;
-                const el = unknownMachines[maskine].el;
-                const total = mek + el;
-                totalMek += mek;
-                totalEl += el;
-
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${maskine} ⚠️</td>
-                    <td class="mek-val">${mek > 0 ? mek : '-'}</td>
-                    <td class="el-val">${el > 0 ? el : '-'}</td>
-                    <td class="total-val">${total}</td>
-                `;
-                resultBody.appendChild(tr);
-            }
-
-            // Total-række
-            const totalTr = document.createElement('tr');
-            totalTr.className = 'total-row';
-            totalTr.innerHTML = `
-                <td>TOTAL</td>
-                <td class="mek-val">${totalMek}</td>
-                <td class="el-val">${totalEl}</td>
-                <td class="total-val">${totalMek + totalEl}</td>
-            `;
-            resultBody.appendChild(totalTr);
-
-            // Info om ignorerede linjer
-            let infoText = `✅ ${parsedLines} rækker behandlet.`;
-            if (ignoredLines > 0) {
-                infoText += ` | ⏭️ ${ignoredLines} rækker ignoreret (subtotaler/ugyldige).`;
-            }
-            if (Object.keys(unknownMachines).length > 0) {
-                infoText += ` | ⚠️ Ukendte maskiner: ${Object.keys(unknownMachines).join(', ')}`;
-            }
-            ignoredInfo.textContent = infoText;
-
-            resultSection.style.display = 'block';
-        }
-
-        function ryd() {
-            document.getElementById('dataInput').value = '';
-            document.getElementById('resultSection').style.display = 'none';
-            document.getElementById('errorMsg').style.display = 'none';
-        }
-    </script>
-</body>
+                var matchedMaskine = findMaskineMatch
 </html>
