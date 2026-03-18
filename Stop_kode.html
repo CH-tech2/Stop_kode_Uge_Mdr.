@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stop Tider - Beregning</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1a1a2e;
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #D20014;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .input-section {
+            background: #16213e;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #0f3460;
+        }
+        .input-section label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #208684;
+            font-size: 16px;
+        }
+        .input-section p {
+            margin-bottom: 12px;
+            color: #999;
+            font-size: 13px;
+        }
+        textarea {
+            width: 100%;
+            height: 200px;
+            background: #0f0f23;
+            color: #e0e0e0;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 12px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 13px;
+            resize: vertical;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #208684;
+        }
+        .buttons {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-calc {
+            background: #D20014;
+            color: white;
+        }
+        .btn-calc:hover {
+            background: #9F000F;
+        }
+        .btn-clear {
+            background: #333;
+            color: #ccc;
+        }
+        .btn-clear:hover {
+            background: #555;
+        }
+        .result-section {
+            background: #16213e;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+            border: 1px solid #0f3460;
+            display: none;
+        }
+        .result-section h2 {
+            color: #208684;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th {
+            background: #0f3460;
+            color: #208684;
+            padding: 12px 15px;
+            text-align: left;
+            font-size: 14px;
+            border-bottom: 2px solid #208684;
+        }
+        td {
+            padding: 10px 15px;
+            border-bottom: 1px solid #1a1a3e;
+            font-size: 14px;
+        }
+        tr:hover {
+            background: #1a1a3e;
+        }
+        .total-row {
+            background: #0f3460 !important;
+            font-weight: bold;
+            color: #D20014;
+        }
+        .total-row td {
+            border-top: 2px solid #208684;
+            font-size: 15px;
+        }
+        .mek-val {
+            color: #f0a500;
+        }
+        .el-val {
+            color: #4fc3f7;
+        }
+        .total-val {
+            color: #e0e0e0;
+        }
+        .ignored-info {
+            margin-top: 15px;
+            padding: 10px 15px;
+            background: #1a1a2e;
+            border-radius: 8px;
+            color: #777;
+            font-size: 12px;
+        }
+        .error-msg {
+            color: #D20014;
+            background: #2a0a0a;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 10px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⏱️ Stop Tider Beregning</h1>
+        <p class="subtitle">Indsæt data fra Excel — beregn Mek/El tid pr. maskine</p>
+
+        <div class="input-section">
+            <label>📋 Indsæt data fra Excel her:</label>
+            <p>Forventet format: <strong>min | Maskine | fejl | Mek/EL</strong> (tab-separeret fra Excel). Subtotal-rækker og fejlbeskrivelser ignoreres automatisk.</p>
+            <textarea id="dataInput" placeholder="Indsæt dine Excel-data her...
+
+Eksempel:
+50	Krymperen	Smed på løftegrej	Mek
+10	Krymperen	Fejl på folie	El
+30	PSM01	Motor stoppet	Mek"></textarea>
+            <div class="buttons">
+                <button class="btn btn-calc" onclick="beregn()">⚡ Beregn</button>
+                <button class="btn btn-clear" onclick="ryd()">🗑️ Ryd</button>
+            </div>
+            <div class="error-msg" id="errorMsg"></div>
+        </div>
+
+        <div class="result-section" id="resultSection">
+            <h2>📊 Resultat — Stop Tider pr. Maskine</h2>
+            <table id="resultTable">
+                <thead>
+                    <tr>
+                        <th>Maskine</th>
+                        <th>Mek (min)</th>
+                        <th>El (min)</th>
+                        <th>Total (min)</th>
+                    </tr>
+                </thead>
+                <tbody id="resultBody"></tbody>
+            </table>
+            <div class="ignored-info" id="ignoredInfo"></div>
+        </div>
+    </div>
+
+    <script>
+        // Fast rækkefølge af maskiner
+        const MASKINE_ORDER = [
+            "PSM01",
+            "PSM02",
+            "Teclict sav01",
+            "Lamel",
+            "Krymperen",
+            "RPI XII",
+            "Sav 42",
+            "Sav 44",
+            "Sav 46",
+            "Sav 48",
+            "Rundsav (Sav35)",
+            "Valse",
+            "Båndsav 33",
+            "Båndsav 34",
+            "Båndsav Linje"
+        ];
+
+        // Normalisering: gør match mere fleksibelt
+        function normalizeName(name) {
+            return name.trim().toLowerCase().replace(/\s+/g, ' ');
+        }
+
+        // Find bedste match i MASKINE_ORDER
+        function findMaskineMatch(inputName) {
+            const norm = normalizeName(inputName);
+            for (let i = 0; i < MASKINE_ORDER.length; i++) {
+                if (normalizeName(MASKINE_ORDER[i]) === norm) {
+                    return MASKINE_ORDER[i];
+                }
+            }
+            // Delvist match
+            for (let i = 0; i < MASKINE_ORDER.length; i++) {
+                const orderNorm = normalizeName(MASKINE_ORDER[i]);
+                if (orderNorm.includes(norm) || norm.includes(orderNorm)) {
+                    return MASKINE_ORDER[i];
+                }
+            }
+            return null;
+        }
+
+        function beregn() {
+            const raw = document.getElementById('dataInput').value.trim();
+            const errorEl = document.getElementById('errorMsg');
+            const resultSection = document.getElementById('resultSection');
+            const resultBody = document.getElementById('resultBody');
+            const ignoredInfo = document.getElementById('ignoredInfo');
+
+            errorEl.style.display = 'none';
+            resultSection.style.display = 'none';
+
+            if (!raw) {
+                errorEl.textContent = '⚠️ Indsæt venligst data først!';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            const lines = raw.split('\n');
+            const data = {}; // { maskinNavn: { mek: 0, el: 0 } }
+            const unknownMachines = {};
+            let ignoredLines = 0;
+            let parsedLines = 0;
+
+            for (let line of lines) {
+                line = line.trim();
+                if (!line) continue;
+
+                // Split på tab
+                const parts = line.split('\t');
+
+                // Ignorer subtotal-rækker (kun ét felt eller første felt er tal og intet andet relevant)
+                if (parts.length < 3) {
+                    ignoredLines++;
+                    continue;
+                }
+
+                const minVal = parseFloat(parts[0]);
+                const maskine = parts[1] ? parts[1].trim() : '';
+                // parts[2] = fejl (ignoreres)
+                const mekEl = parts[3] ? parts[3].trim().toLowerCase() : '';
+
+                // Valider
+                if (isNaN(minVal) || !maskine || (mekEl !== 'mek' && mekEl !== 'el')) {
+                    ignoredLines++;
+                    continue;
+                }
+
+                // Find maskine i fast rækkefølge
+                let matchedName = findMaskineMatch(maskine);
+
+                if (matchedName) {
+                    if (!data[matchedName]) {
+                        data[matchedName] = { mek: 0, el: 0 };
+                    }
+                    if (mekEl === 'mek') {
+                        data[matchedName].mek += minVal;
+                    } else {
+                        data[matchedName].el += minVal;
+                    }
+                    parsedLines++;
+                } else {
+                    // Ukendt maskine — tilføj alligevel men markér
+                    if (!unknownMachines[maskine]) {
+                        unknownMachines[maskine] = { mek: 0, el: 0 };
+                    }
+                    if (mekEl === 'mek') {
+                        unknownMachines[maskine].mek += minVal;
+                    } else {
+                        unknownMachines[maskine].el += minVal;
+                    }
+                    parsedLines++;
+                }
+            }
+
+            if (parsedLines === 0) {
+                errorEl.textContent = '⚠️ Ingen gyldige datarækker fundet. Tjek at formatet er: min [TAB] Maskine [TAB] fejl [TAB] Mek/El';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            // Byg tabel
+            resultBody.innerHTML = '';
+            let totalMek = 0;
+            let totalEl = 0;
+
+            // Først kendte maskiner i fast rækkefølge
+            for (const maskine of MASKINE_ORDER) {
+                if (data[maskine]) {
+                    const mek = data[maskine].mek;
+                    const el = data[maskine].el;
+                    const total = mek + el;
+                    totalMek += mek;
+                    totalEl += el;
+
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${maskine}</td>
+                        <td class="mek-val">${mek > 0 ? mek : '-'}</td>
+                        <td class="el-val">${el > 0 ? el : '-'}</td>
+                        <td class="total-val">${total}</td>
+                    `;
+                    resultBody.appendChild(tr);
+                }
+            }
+
+            // Derefter ukendte maskiner (hvis nogen)
+            for (const maskine of Object.keys(unknownMachines)) {
+                const mek = unknownMachines[maskine].mek;
+                const el = unknownMachines[maskine].el;
+                const total = mek + el;
+                totalMek += mek;
+                totalEl += el;
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${maskine} ⚠️</td>
+                    <td class="mek-val">${mek > 0 ? mek : '-'}</td>
+                    <td class="el-val">${el > 0 ? el : '-'}</td>
+                    <td class="total-val">${total}</td>
+                `;
+                resultBody.appendChild(tr);
+            }
+
+            // Total-række
+            const totalTr = document.createElement('tr');
+            totalTr.className = 'total-row';
+            totalTr.innerHTML = `
+                <td>TOTAL</td>
+                <td class="mek-val">${totalMek}</td>
+                <td class="el-val">${totalEl}</td>
+                <td class="total-val">${totalMek + totalEl}</td>
+            `;
+            resultBody.appendChild(totalTr);
+
+            // Info om ignorerede linjer
+            let infoText = `✅ ${parsedLines} rækker behandlet.`;
+            if (ignoredLines > 0) {
+                infoText += ` | ⏭️ ${ignoredLines} rækker ignoreret (subtotaler/ugyldige).`;
+            }
+            if (Object.keys(unknownMachines).length > 0) {
+                infoText += ` | ⚠️ Ukendte maskiner: ${Object.keys(unknownMachines).join(', ')}`;
+            }
+            ignoredInfo.textContent = infoText;
+
+            resultSection.style.display = 'block';
+        }
+
+        function ryd() {
+            document.getElementById('dataInput').value = '';
+            document.getElementById('resultSection').style.display = 'none';
+            document.getElementById('errorMsg').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
