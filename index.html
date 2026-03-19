@@ -3,662 +3,698 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stop Kode Beregner V2.6</title>
+    <title>Stop Kode Beregner V2.7</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <style>
-        * { margin:0; padding:0; box-sizing:border-box; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
-            font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color:#1a1a2e;
-            color:#e0e0e0;
-            min-height:100vh;
-            padding:20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1a1a2e;
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 20px;
         }
+
         h1 {
-            text-align:center;
-            color:#D20014;
-            margin-bottom:10px;
-            font-size:28px;
+            text-align: center;
+            color: #D20014;
+            margin-bottom: 10px;
+            font-size: 28px;
         }
+
         .subtitle {
-            text-align:center;
-            color:#888;
-            margin-bottom:30px;
-            font-size:14px;
+            text-align: center;
+            color: #888;
+            margin-bottom: 30px;
+            font-size: 14px;
         }
+
         .version {
-            text-align:center;
-            color:#555;
-            font-size:11px;
-            margin-bottom:20px;
+            text-align: center;
+            color: #555;
+            font-size: 11px;
+            margin-bottom: 20px;
         }
+
         .container {
-            max-width:1100px;
-            margin:0 auto;
+            max-width: 1100px;
+            margin: 0 auto;
         }
-        .input-section, .result-section, .machine-section {
-            background:#16213e;
-            border-radius:12px;
-            padding:20px;
-            margin-bottom:20px;
-            border:1px solid #0f3460;
+
+        .input-section, .result-section {
+            background: #16213e;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #0f3460;
         }
-        .input-section label {
-            display:block;
-            margin-bottom:8px;
-            font-weight:bold;
-            color:#208684;
-            font-size:16px;
+
+        .input-section label,
+        .result-section label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #208684;
+            font-size: 16px;
         }
+
         .input-section p {
-            margin-bottom:12px;
-            color:#999;
-            font-size:13px;
+            margin-bottom: 12px;
+            color: #999;
+            font-size: 13px;
         }
+
         textarea {
-            width:100%;
-            height:220px;
-            background:#0f0f23;
-            color:#e0e0e0;
-            border:1px solid #333;
-            border-radius:8px;
-            padding:12px;
-            font-family:'Consolas','Courier New',monospace;
-            font-size:13px;
-            resize:vertical;
+            width: 100%;
+            height: 220px;
+            background: #0f0f23;
+            color: #e0e0e0;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 12px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 13px;
+            resize: vertical;
         }
+
         textarea:focus, select:focus, input:focus {
-            outline:none;
-            border-color:#208684;
+            outline: none;
+            border-color: #208684;
         }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 15px;
+            margin-top: 18px;
+            margin-bottom: 10px;
+        }
+
+        .control-box {
+            background: #10182f;
+            border: 1px solid #1d2d52;
+            border-radius: 10px;
+            padding: 12px;
+        }
+
+        .control-box label {
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .control-box select,
+        .control-box input {
+            width: 100%;
+            background: #0f0f23;
+            color: #e0e0e0;
+            border: 1px solid #333;
+            border-radius: 6px;
+            padding: 9px 10px;
+            font-size: 14px;
+        }
+
+        .checkbox-list {
+            max-height: 180px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 7px;
+            font-size: 13px;
+            color: #ddd;
+        }
+
+        .checkbox-item input {
+            width: auto;
+            margin-right: 8px;
+            accent-color: #D20014;
+        }
+
+        .small-buttons {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        .small-btn {
+            padding: 6px 10px;
+            font-size: 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            background: #333;
+            color: #ddd;
+        }
+
+        .small-btn:hover {
+            background: #555;
+        }
+
         .buttons {
-            margin-top:15px;
-            display:flex;
-            gap:10px;
-            flex-wrap:wrap;
+            margin-top: 18px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
         }
+
         .btn {
-            padding:12px 30px;
-            border:none;
-            border-radius:8px;
-            font-size:16px;
-            font-weight:bold;
-            cursor:pointer;
-            transition:all 0.2s;
-        }
-        .btn-calc { background:#D20014; color:white; }
-        .btn-calc:hover { background:#9F000F; }
-        .btn-clear { background:#333; color:#ccc; }
-        .btn-clear:hover { background:#555; }
-        .btn-pdf { background:#208684; color:white; }
-        .btn-pdf:hover { background:#186462; }
-
-        .filters {
-            margin-top:18px;
-            display:grid;
-            grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
-            gap:15px;
-        }
-        .filter-box {
-            background:#101933;
-            padding:12px;
-            border-radius:8px;
-            border:1px solid #22345f;
-        }
-        .filter-box label {
-            margin-bottom:6px;
-            font-size:14px;
-            color:#208684;
-        }
-        .filter-box select, .filter-box input {
-            width:100%;
-            background:#0f0f23;
-            color:#e0e0e0;
-            border:1px solid #333;
-            border-radius:6px;
-            padding:8px 10px;
-            font-size:14px;
+            padding: 12px 26px;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
         }
 
-        .result-section { display:none; }
-        .result-section h2 {
-            color:#208684;
-            margin-bottom:15px;
-            font-size:22px;
+        .btn-calc {
+            background: #D20014;
+            color: white;
         }
-        .machine-section h3 {
-            color:#D20014;
-            margin-bottom:15px;
-            font-size:20px;
-            border-bottom:1px solid #0f3460;
-            padding-bottom:8px;
+
+        .btn-calc:hover {
+            background: #9F000F;
         }
-        .sub-block {
-            margin-bottom:25px;
-            padding:14px;
-            background:#101933;
-            border-radius:8px;
-            border:1px solid #22345f;
+
+        .btn-clear {
+            background: #333;
+            color: #ccc;
         }
-        .sub-block h4 {
-            color:#f0a500;
-            margin-bottom:10px;
-            font-size:16px;
+
+        .btn-clear:hover {
+            background: #555;
         }
-        table {
-            width:100%;
-            border-collapse:collapse;
-            margin-bottom:10px;
+
+        .btn-pdf {
+            background: #208684;
+            color: white;
         }
-        th {
-            background:#0f3460;
-            color:#208684;
-            padding:12px 15px;
-            text-align:left;
-            font-size:14px;
-            border-bottom:2px solid #208684;
+
+        .btn-pdf:hover {
+            background: #186462;
         }
-        td {
-            padding:10px 15px;
-            border-bottom:1px solid #1a1a3e;
-            font-size:14px;
-        }
-        tr:hover { background:#1a1a3e; }
-        .total-row {
-            background:#0f3460 !important;
-            font-weight:bold;
-            color:#D20014;
-        }
-        .total-row td {
-            border-top:2px solid #208684;
-            font-size:15px;
-        }
-        .ignored-info {
-            margin-top:15px;
-            padding:10px 15px;
-            background:#1a1a2e;
-            border-radius:8px;
-            color:#777;
-            font-size:12px;
-        }
+
         .error-msg {
-            color:#D20014;
-            background:#2a0a0a;
-            padding:12px;
-            border-radius:8px;
-            margin-top:10px;
-            display:none;
+            color: #ffb3b3;
+            background: #2a0a0a;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 12px;
+            display: none;
+            border: 1px solid #5a1a1a;
         }
-        .small-note {
-            font-size:12px;
-            color:#999;
-            margin-top:5px;
+
+        .result-section {
+            display: none;
+        }
+
+        .result-section h2 {
+            color: #208684;
+            margin-bottom: 15px;
+            font-size: 22px;
+        }
+
+        .summary-box {
+            background: #10182f;
+            border: 1px solid #1d2d52;
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 20px;
+            color: #d8d8d8;
+            line-height: 1.6;
+        }
+
+        .machine-section {
+            margin-bottom: 28px;
+            border: 1px solid #24385f;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #10182f;
+        }
+
+        .machine-header {
+            background: linear-gradient(90deg, #0f3460, #16213e);
+            padding: 14px 16px;
+            border-bottom: 1px solid #24385f;
+        }
+
+        .machine-header h3 {
+            color: #D20014;
+            font-size: 20px;
+            margin: 0;
+        }
+
+        .machine-content {
+            padding: 16px;
+        }
+
+        .group-block {
+            margin-bottom: 24px;
+        }
+
+        .group-block h4 {
+            color: #208684;
+            margin-bottom: 10px;
+            font-size: 17px;
+            border-bottom: 1px solid #1d2d52;
+            padding-bottom: 6px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 14px;
+        }
+
+        th {
+            background: #0f3460;
+            color: #d8ffff;
+            padding: 11px 12px;
+            text-align: left;
+            font-size: 13px;
+            border-bottom: 2px solid #208684;
+        }
+
+        td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #1a1a3e;
+            font-size: 13px;
+        }
+
+        tr:hover td {
+            background: #182445;
+        }
+
+        .total-row {
+            background: #13294b !important;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .total-row td {
+            border-top: 2px solid #208684;
+        }
+
+        .code-val { color: #f0a500; font-weight: 600; }
+        .time-val { color: #7fd3ff; font-weight: 600; }
+        .total-val { color: #ffffff; font-weight: 700; }
+
+        .ignored-info {
+            margin-top: 16px;
+            padding: 12px 15px;
+            background: #10182f;
+            border-radius: 8px;
+            color: #999;
+            font-size: 12px;
+            border: 1px solid #1d2d52;
+        }
+
+        .muted {
+            color: #888;
+            font-size: 12px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 999px;
+            background: #24385f;
+            color: #cfefff;
+            font-size: 12px;
+            margin-left: 8px;
         }
     </style>
 </head>
 <body>
-<div class="container">
-    <h1>⏱️ Stop Kode Beregner</h1>
-    <p class="subtitle">Indsæt data fra Excel — beregn stop tid pr. maskine og stopkode</p>
-    <p class="version">Version 2.6</p>
+    <div class="container">
+        <h1>⏱️ Stop Kode Beregner</h1>
+        <p class="subtitle">Indsæt data fra Excel — beregn stop tid pr. maskine og stopkode</p>
+        <p class="version">Version 2.7</p>
 
-    <div class="input-section">
-        <label>📋 Indsæt data fra Excel her:</label>
-        <p>Forventet format: <strong>Dato (DD-MM-YYYY) [TAB] Maskine [TAB] Stopkode: Navn [TAB] Tid (min)</strong></p>
+        <div class="input-section">
+            <label>📋 Indsæt data fra Excel her:</label>
+            <p>Forventet format: <strong>Dato (DD-MM-YYYY) [TAB] Maskine [TAB] Stopkode: Navn [TAB] Tid (min)</strong></p>
 
-        <textarea id="dataInput" placeholder="Eksempel:
+            <textarea id="dataInput" placeholder="Eksempel:
 17-03-2026	PSM01	8: Rengøring	30
 17-03-2026	PSM01	11: Maskinstop	15
 17-03-2026	PSM02	8: Rengøring	75"></textarea>
 
-        <div class="filters">
-            <div class="filter-box">
-                <label for="groupBy">📅 Gruppering</label>
-                <select id="groupBy">
-                    <option value="uge_maaned">Uge/Måned</option>
-                    <option value="maaned">Kun måned</option>
-                    <option value="uge">Kun uge</option>
-                </select>
+            <div class="controls-grid">
+                <div class="control-box">
+                    <label for="groupBy">📅 Gruppering</label>
+                    <select id="groupBy">
+                        <option value="uge_maaned">Uge/Måned</option>
+                        <option value="maaned">Kun måned</option>
+                        <option value="uge">Kun uge</option>
+                    </select>
+                </div>
+
+                <div class="control-box">
+                    <label for="machineFilter">🏭 Vælg maskine</label>
+                    <select id="machineFilter">
+                        <option value="">Alle maskiner</option>
+                    </select>
+                </div>
+
+                <div class="control-box">
+                    <label for="monthFilter">🗓️ Vælg måned</label>
+                    <select id="monthFilter">
+                        <option value="">Alle måneder</option>
+                    </select>
+                </div>
+
+                <div class="control-box">
+                    <label for="weekFilter">📆 Vælg uge</label>
+                    <select id="weekFilter">
+                        <option value="">Alle uger</option>
+                    </select>
+                </div>
+
+                <div class="control-box">
+                    <label>🎯 Vælg specifikke stopkoder</label>
+                    <div class="small-buttons">
+                        <button type="button" class="small-btn" onclick="selectAllCodes()">Vælg alle</button>
+                        <button type="button" class="small-btn" onclick="clearAllCodes()">Fjern alle</button>
+                    </div>
+                    <div class="checkbox-list" id="codeCheckboxes"></div>
+                </div>
             </div>
 
-            <div class="filter-box">
-                <label for="machineFilter">🏭 Vælg maskine</label>
-                <select id="machineFilter">
-                    <option value="">Alle maskiner</option>
-                </select>
+            <div class="buttons">
+                <button class="btn btn-calc" onclick="beregn()">⚡ Beregn</button>
+                <button class="btn btn-clear" onclick="ryd()">🗑️ Ryd</button>
+                <button class="btn btn-pdf" id="btnPdf" onclick="downloadPdf()" style="display:none;">📄 Download PDF</button>
             </div>
 
-            <div class="filter-box">
-                <label for="monthFilter">🗓️ Vælg måned</label>
-                <select id="monthFilter">
-                    <option value="">Alle måneder</option>
-                </select>
-            </div>
-
-            <div class="filter-box">
-                <label for="excludeCodes">🚫 Udelad stopkoder</label>
-                <input type="text" id="excludeCodes" placeholder="Fx: 8,11,15">
-                <div class="small-note">Skriv koder adskilt med komma</div>
-            </div>
+            <div class="error-msg" id="errorMsg"></div>
         </div>
 
-        <div class="buttons">
-            <button class="btn btn-calc" onclick="beregn()">⚡ Beregn</button>
-            <button class="btn btn-clear" onclick="ryd()">🗑️ Ryd</button>
-            <button class="btn btn-pdf" id="btnPdf" onclick="downloadPdf()" style="display:none;">📄 Download PDF</button>
+        <div class="result-section" id="resultSection">
+            <h2>📊 Resultat</h2>
+            <div class="summary-box" id="summaryBox"></div>
+            <div id="resultContent"></div>
+            <div class="ignored-info" id="ignoredInfo"></div>
         </div>
-
-        <div class="error-msg" id="errorMsg"></div>
     </div>
 
-    <div class="result-section" id="resultSection">
-        <h2>📊 Resultat</h2>
-        <div id="resultContent"></div>
-        <div class="ignored-info" id="ignoredInfo"></div>
-    </div>
-</div>
-
-<script>
-var STOPKODER = {
-    1:"Betjeningsfejl",
-    2:"Granulering",
-    3:"Klingeskift",
-    4:"Maskinfejl",
-    5:"Elfejl",
-    6:"Uldmangel",
-    7:"Udsugningsstop",
-    8:"Rengøring",
-    9:"Uld-kvalitet",
-    10:"Folieskift",
-    11:"Maskinstop",
-    12:"Force majeure",
-    13:"Hente uld",
-    14:"Mangler AGV/Udkøre",
-    15:"Mangler Hjælpe materialer",
-    16:"Hjælp på anden maskine"
-};
-
-var MASKINE_ORDER = [
-    "PSM01","PSM02","Teclict Sav3","Lamelmåtten","Krymperen","RPI XII",
-    "Sav 42","Sav 44","Sav 46","Sav 48","Rundsav (Sav35)","Valse",
-    "Båndsav 33","Båndsav 34","Båndsav Linje"
-];
-
-var MAANEDER = ["Januar","Februar","Marts","April","Maj","Juni","Juli","August","September","Oktober","November","December"];
-var globalResults = null;
-
-function normalizeName(name) {
-    return name.trim().toLowerCase().replace(/\s+/g, ' ');
-}
-
-function findMaskineMatch(inputName) {
-    var norm = normalizeName(inputName);
-    for (var i=0; i<MASKINE_ORDER.length; i++) {
-        if (normalizeName(MASKINE_ORDER[i]) === norm) return MASKINE_ORDER[i];
-    }
-    for (var j=0; j<MASKINE_ORDER.length; j++) {
-        var orderNorm = normalizeName(MASKINE_ORDER[j]);
-        if (orderNorm.indexOf(norm) !== -1 || norm.indexOf(orderNorm) !== -1) return MASKINE_ORDER[j];
-    }
-    return inputName.trim();
-}
-
-function parseDato(str) {
-    var parts = str.trim().split('-');
-    if (parts.length !== 3) return null;
-    var d = parseInt(parts[0],10);
-    var m = parseInt(parts[1],10);
-    var y = parseInt(parts[2],10);
-    if (isNaN(d) || isNaN(m) || isNaN(y)) return null;
-    return new Date(y, m-1, d);
-}
-
-function getWeekNumber(date) {
-    var d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-    var dayNum = d.getUTCDay() || 7;
-    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-    var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-    var weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-    return { year:d.getUTCFullYear(), week:weekNo };
-}
-
-function formatMonthKey(date) {
-    return date.getFullYear() + "-" + String(date.getMonth()+1).padStart(2,'0');
-}
-
-function monthLabelFromKey(key) {
-    var parts = key.split("-");
-    return MAANEDER[parseInt(parts[1],10)-1] + " " + parts[0];
-}
-
-function parseExcludeCodes() {
-    var val = document.getElementById("excludeCodes").value.trim();
-    if (!val) return [];
-    return val.split(",")
-        .map(function(x){ return parseInt(x.trim(),10); })
-        .filter(function(x){ return !isNaN(x) && x >= 1 && x <= 16; });
-}
-
-function escapeHtml(text) {
-    return String(text)
-        .replace(/&/g,"&amp;")
-        .replace(/</g,"&lt;")
-        .replace(/>/g,"&gt;")
-        .replace(/"/g,"&quot;")
-        .replace(/'/g,"&#039;");
-}
-
-function populateFilters(entries) {
-    var machineFilter = document.getElementById("machineFilter");
-    var monthFilter = document.getElementById("monthFilter");
-
-    var currentMachine = machineFilter.value;
-    var currentMonth = monthFilter.value;
-
-    var machines = {};
-    var months = {};
-
-    entries.forEach(function(e){
-        machines[e.maskine] = true;
-        months[formatMonthKey(e.dato)] = true;
-    });
-
-    var machineList = Object.keys(machines).sort(function(a,b){
-        var ai = MASKINE_ORDER.indexOf(a);
-        var bi = MASKINE_ORDER.indexOf(b);
-        if (ai === -1 && bi === -1) return a.localeCompare(b, 'da');
-        if (ai === -1) return 1;
-        if (bi === -1) return -1;
-        return ai - bi;
-    });
-
-    var monthList = Object.keys(months).sort();
-
-    machineFilter.innerHTML = '<option value="">Alle maskiner</option>' +
-        machineList.map(function(m){
-            return '<option value="' + escapeHtml(m) + '">' + escapeHtml(m) + '</option>';
-        }).join("");
-
-    monthFilter.innerHTML = '<option value="">Alle måneder</option>' +
-        monthList.map(function(m){
-            return '<option value="' + escapeHtml(m) + '">' + escapeHtml(monthLabelFromKey(m)) + '</option>';
-        }).join("");
-
-    machineFilter.value = machineList.indexOf(currentMachine) !== -1 ? currentMachine : "";
-    monthFilter.value = monthList.indexOf(currentMonth) !== -1 ? currentMonth : "";
-}
-
-function aggregateCodes(rows) {
-    var map = {};
-    rows.forEach(function(r){
-        if (!map[r.kode]) map[r.kode] = 0;
-        map[r.kode] += r.tid;
-    });
-    return map;
-}
-
-function buildCodeTable(codeMap) {
-    var codes = Object.keys(codeMap).map(Number).sort(function(a,b){ return a-b; });
-    var total = 0;
-    var html = '<table><thead><tr><th>Stopkode</th><th>Navn</th><th>Minutter</th></tr></thead><tbody>';
-
-    codes.forEach(function(k){
-        total += codeMap[k];
-        html += '<tr>' +
-            '<td>' + k + '</td>' +
-            '<td>' + escapeHtml(STOPKODER[k] || '') + '</td>' +
-            '<td>' + codeMap[k].toFixed(2) + '</td>' +
-            '</tr>';
-    });
-
-    html += '<tr class="total-row"><td colspan="2">Total</td><td>' + total.toFixed(2) + '</td></tr>';
-    html += '</tbody></table>';
-    return html;
-}
-
-function beregn() {
-    var raw = document.getElementById("dataInput").value.trim();
-    var errorEl = document.getElementById("errorMsg");
-    var resultSection = document.getElementById("resultSection");
-    var resultContent = document.getElementById("resultContent");
-    var ignoredInfo = document.getElementById("ignoredInfo");
-    var btnPdf = document.getElementById("btnPdf");
-
-    errorEl.style.display = "none";
-    resultSection.style.display = "none";
-    btnPdf.style.display = "none";
-    resultContent.innerHTML = "";
-
-    if (!raw) {
-        errorEl.textContent = "⚠️ Indsæt venligst data først!";
-        errorEl.style.display = "block";
-        return;
-    }
-
-    var lines = raw.split("\n");
-    var entries = [];
-    var ignoredLines = 0;
-
-    for (var i=0; i<lines.length; i++) {
-        var line = lines[i].trim();
-        if (!line) continue;
-
-        var parts = line.split("\t");
-        if (parts.length < 4) {
-            ignoredLines++;
-            continue;
-        }
-
-        var dato = parseDato(parts[0]);
-        var maskine = findMaskineMatch(parts[1]);
-        var kodeMatch = parts[2].trim().match(/^(\d+)/);
-        var kode = kodeMatch ? parseInt(kodeMatch[1],10) : null;
-        var tid = parseFloat(String(parts[3]).replace(",", "."));
-
-        if (!dato || !kode || kode < 1 || kode > 16 || isNaN(tid)) {
-            ignoredLines++;
-            continue;
-        }
-
-        entries.push({
-            dato: dato,
-            maskine: maskine,
-            kode: kode,
-            tid: tid
-        });
-    }
-
-    if (!entries.length) {
-        errorEl.textContent = "⚠️ Ingen gyldige data fundet!";
-        errorEl.style.display = "block";
-        return;
-    }
-
-    populateFilters(entries);
-
-    var selectedMachine = document.getElementById("machineFilter").value;
-    var selectedMonth = document.getElementById("monthFilter").value;
-    var grouping = document.getElementById("groupBy").value;
-    var excludeCodes = parseExcludeCodes();
-
-    var filtered = entries.filter(function(e){
-        if (selectedMachine && e.maskine !== selectedMachine) return false;
-        if (selectedMonth && formatMonthKey(e.dato) !== selectedMonth) return false;
-        if (excludeCodes.indexOf(e.kode) !== -1) return false;
-        return true;
-    });
-
-    if (!filtered.length) {
-        errorEl.textContent = "⚠️ Ingen data matcher de valgte filtre.";
-        errorEl.style.display = "block";
-        return;
-    }
-
-    var machineMap = {};
-    filtered.forEach(function(e){
-        if (!machineMap[e.maskine]) machineMap[e.maskine] = [];
-        machineMap[e.maskine].push(e);
-    });
-
-    var sortedMachines = Object.keys(machineMap).sort(function(a,b){
-        var ai = MASKINE_ORDER.indexOf(a);
-        var bi = MASKINE_ORDER.indexOf(b);
-        if (ai === -1 && bi === -1) return a.localeCompare(b, 'da');
-        if (ai === -1) return 1;
-        if (bi === -1) return -1;
-        return ai - bi;
-    });
-
-    globalResults = {
-        grouping: grouping,
-        selectedMachine: selectedMachine,
-        selectedMonth: selectedMonth,
-        excludeCodes: excludeCodes,
-        machineResults: []
-    };
-
-    sortedMachines.forEach(function(machine){
-        var rows = machineMap[machine];
-        var html = '<div class="machine-section">';
-        html += '<h3>🏭 ' + escapeHtml(machine) + '</h3>';
-
-        var monthGroups = {};
-        var weekGroups = {};
-
-        rows.forEach(function(r){
-            var mk = formatMonthKey(r.dato);
-            var wk = getWeekNumber(r.dato);
-            var wkKey = wk.year + "-U" + String(wk.week).padStart(2,'0');
-
-            if (!monthGroups[mk]) monthGroups[mk] = [];
-            if (!weekGroups[wkKey]) weekGroups[wkKey] = [];
-
-            monthGroups[mk].push(r);
-            weekGroups[wkKey].push(r);
-        });
-
-        var machineResult = {
-            machine: machine,
-            monthData: [],
-            weekData: []
+    <script>
+        var STOPKODER = {
+            1: "Betjeningsfejl",
+            2: "Granulering",
+            3: "Klingeskift",
+            4: "Maskinfejl",
+            5: "Elfejl",
+            6: "Uldmangel",
+            7: "Udsugningsstop",
+            8: "Rengøring",
+            9: "Uld-kvalitet",
+            10: "Folieskift",
+            11: "Maskinstop",
+            12: "Force majeure",
+            13: "Hente uld",
+            14: "Mangler AGV/Udkøre",
+            15: "Mangler Hjælpe materialer",
+            16: "Hjælp på anden maskine"
         };
 
-        if (grouping === "uge_maaned" || grouping === "maaned") {
-            Object.keys(monthGroups).sort().forEach(function(mk){
-                var codeMap = aggregateCodes(monthGroups[mk]);
-                html += '<div class="sub-block">';
-                html += '<h4>📅 Måned: ' + escapeHtml(monthLabelFromKey(mk)) + '</h4>';
-                html += buildCodeTable(codeMap);
-                html += '</div>';
+        var MASKINE_ORDER = [
+            "PSM01", "PSM02", "Teclict Sav3", "Lamelmåtten", "Krymperen",
+            "RPI XII", "Sav 42", "Sav 44", "Sav 46", "Sav 48",
+            "Rundsav (Sav35)", "Valse", "Båndsav 33", "Båndsav 34", "Båndsav Linje"
+        ];
 
-                machineResult.monthData.push({
-                    label: monthLabelFromKey(mk),
-                    codeMap: codeMap
-                });
-            });
+        var MAANEDER = [
+            "Januar", "Februar", "Marts", "April", "Maj", "Juni",
+            "Juli", "August", "September", "Oktober", "November", "December"
+        ];
+
+        var globalResults = null;
+
+        function normalizeName(name) {
+            return name.trim().toLowerCase().replace(/\s+/g, ' ');
         }
 
-        if (grouping === "uge_maaned" || grouping === "uge") {
-            Object.keys(weekGroups).sort().forEach(function(wk){
-                var codeMap = aggregateCodes(weekGroups[wk]);
-                html += '<div class="sub-block">';
-                html += '<h4>📆 Uge: ' + escapeHtml(wk) + '</h4>';
-                html += buildCodeTable(codeMap);
-                html += '</div>';
+        function findMaskineMatch(inputName) {
+            var norm = normalizeName(inputName);
 
-                machineResult.weekData.push({
-                    label: wk,
-                    codeMap: codeMap
-                });
-            });
-        }
+            for (var i = 0; i < MASKINE_ORDER.length; i++) {
+                if (normalizeName(MASKINE_ORDER[i]) === norm) return MASKINE_ORDER[i];
+            }
 
-        html += '</div>';
-        resultContent.innerHTML += html;
-        globalResults.machineResults.push(machineResult);
-    });
-
-    ignoredInfo.innerHTML =
-        'Ignorerede linjer: <strong>' + ignoredLines + '</strong>' +
-        (excludeCodes.length ? ' | Udeladte stopkoder: <strong>' + excludeCodes.join(", ") + '</strong>' : '') +
-        ' | Viste poster: <strong>' + filtered.length + '</strong>';
-
-    resultSection.style.display = "block";
-    btnPdf.style.display = "inline-block";
-}
-
-function addPdfTable(doc, title, codeMap) {
-    var rows = [];
-    var total = 0;
-    Object.keys(codeMap).map(Number).sort(function(a,b){ return a-b; }).forEach(function(k){
-        total += codeMap[k];
-        rows.push([String(k), STOPKODER[k] || "", codeMap[k].toFixed(2)]);
-    });
-    rows.push(["", "Total", total.toFixed(2)]);
-
-    doc.setFontSize(12);
-    doc.text(title, 14, doc.lastAutoTable ? doc.lastAutoTable.finalY + 12 : 20);
-
-    doc.autoTable({
-        startY: doc.lastAutoTable ? doc.lastAutoTable.finalY + 16 : 24,
-        head: [["Stopkode","Navn","Minutter"]],
-        body: rows,
-        theme: "grid",
-        headStyles: { fillColor:[15,52,96], textColor:[32,134,132] },
-        styles: { fillColor:[255,255,255], textColor:[0,0,0] },
-        alternateRowStyles: { fillColor:[245,245,245] }
-    });
-}
-
-function downloadPdf() {
-    if (!globalResults || !globalResults.machineResults || !globalResults.machineResults.length) return;
-
-    var jsPDF = window.jspdf.jsPDF;
-    var doc = new jsPDF();
-
-    globalResults.machineResults.forEach(function(machineRes, idx){
-        if (idx > 0) doc.addPage();
-
-        doc.setFontSize(16);
-        doc.text("Stop Kode Beregner v2.6", 14, 15);
-        doc.setFontSize(14);
-        doc.text("Maskine: " + machineRes.machine, 14, 24);
-
-        if (globalResults.grouping === "uge_maaned" || globalResults.grouping === "maaned") {
-            machineRes.monthData.forEach(function(m){
-                addPdfTable(doc, "Måned: " + m.label, m.codeMap);
-            });
-        }
-
-        if (globalResults.grouping === "uge_maaned" || globalResults.grouping === "uge") {
-            machineRes.weekData.forEach(function(w){
-                var needNewPage = doc.lastAutoTable && doc.lastAutoTable.finalY > 230;
-                if (needNewPage) {
-                    doc.addPage();
-                    doc.setFontSize(14);
-                    doc.text("Maskine: " + machineRes.machine + " (fortsat)", 14, 15);
+            for (var j = 0; j < MASKINE_ORDER.length; j++) {
+                var orderNorm = normalizeName(MASKINE_ORDER[j]);
+                if (orderNorm.indexOf(norm) !== -1 || norm.indexOf(orderNorm) !== -1) {
+                    return MASKINE_ORDER[j];
                 }
-                addPdfTable(doc, "Uge: " + w.label, w.codeMap);
+            }
+
+            return null;
+        }
+
+        function parseDato(str) {
+            var parts = str.trim().split('-');
+            if (parts.length !== 3) return null;
+            var d = parseInt(parts[0], 10);
+            var m = parseInt(parts[1], 10);
+            var y = parseInt(parts[2], 10);
+            if (isNaN(d) || isNaN(m) || isNaN(y)) return null;
+
+            var date = new Date(y, m - 1, d);
+            if (date.getFullYear() !== y || date.getMonth() !== m - 1 || date.getDate() !== d) return null;
+            return date;
+        }
+
+        function getWeekNumber(date) {
+            var d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+            var dayNum = d.getUTCDay() || 7;
+            d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+            var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+            var weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+            return { year: d.getUTCFullYear(), week: weekNo };
+        }
+
+        function formatMonthKey(date) {
+            return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0');
+        }
+
+        function monthLabelFromKey(key) {
+            var parts = key.split('-');
+            var y = parts[0];
+            var m = parseInt(parts[1], 10);
+            return MAANEDER[m - 1] + ' ' + y;
+        }
+
+        function formatWeekKey(date) {
+            var w = getWeekNumber(date);
+            return w.year + '-W' + String(w.week).padStart(2, '0');
+        }
+
+        function weekLabelFromKey(key) {
+            return 'Uge ' + key.split('-W')[1] + ' (' + key.split('-W')[0] + ')';
+        }
+
+        function escapeHtml(text) {
+            return String(text)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function getSelectedCodes() {
+            var selected = [];
+            var checkboxes = document.querySelectorAll('.code-checkbox');
+            checkboxes.forEach(function(cb) {
+                if (cb.checked) selected.push(parseInt(cb.value, 10));
+            });
+            return selected;
+        }
+
+        function selectAllCodes() {
+            document.querySelectorAll('.code-checkbox').forEach(function(cb) {
+                cb.checked = true;
             });
         }
-    });
 
-    doc.save("stopkode_beregner_v2_6.pdf");
-}
+        function clearAllCodes() {
+            document.querySelectorAll('.code-checkbox').forEach(function(cb) {
+                cb.checked = false;
+            });
+        }
 
-function ryd() {
-    document.getElementById("dataInput").value = "";
-    document.getElementById("excludeCodes").value = "";
-    document.getElementById("machineFilter").innerHTML = '<option value="">Alle maskiner</option>';
-    document.getElementById("monthFilter").innerHTML = '<option value="">Alle måneder</option>';
-    document.getElementById("resultContent").innerHTML = "";
-    document.getElementById("resultSection").style.display = "none";
-    document.getElementById("btnPdf").style.display = "none";
-    document.getElementById("errorMsg").style.display = "none";
-    document.getElementById("groupBy").value = "uge_maaned";
-    globalResults = null;
-}
-</script>
-</body>
-</html>
+        function buildCodeCheckboxes() {
+            var container = document.getElementById('codeCheckboxes');
+            var html = '';
+            for (var kode in STOPKODER) {
+                html += '<label class="checkbox-item">' +
+                    '<input type="checkbox" class="code-checkbox" value="' + kode + '" checked>' +
+                    kode + ': ' + escapeHtml(STOPKODER[kode]) +
+                    '</label>';
+            }
+            container.innerHTML = html;
+        }
+
+        function extractRawData() {
+            var raw = document.getElementById('dataInput').value.trim();
+            var lines = raw ? raw.split('\n') : [];
+            var entries = [];
+            var ignoredLines = 0;
+            var unknownMachineNames = {};
+
+            for (var li = 0; li < lines.length; li++) {
+                var line = lines[li].trim();
+                if (!line) continue;
+
+                var parts = line.split('\t');
+                if (parts.length < 4) {
+                    ignoredLines++;
+                    continue;
+                }
+
+                var datoStr = parts[0].trim();
+                var maskineStr = parts[1].trim();
+                var kodeStr = parts[2].trim();
+                var tidStr = parts[3].trim().replace(',', '.');
+
+                var dato = parseDato(datoStr);
+                var tid = parseFloat(tidStr);
+                var kodeMatch = kodeStr.match(/^(\d+)/);
+                var kode = kodeMatch ? parseInt(kodeMatch[1], 10) : null;
+
+                if (!dato || !kode || kode < 1 || kode > 16 || isNaN(tid)) {
+                    ignoredLines++;
+                    continue;
+                }
+
+                var matchedMaskine = findMaskineMatch(maskineStr);
+                if (!matchedMaskine) {
+                    unknownMachineNames[maskineStr] = true;
+                    matchedMaskine = maskineStr;
+                }
+
+                entries.push({
+                    dato: dato,
+                    maskine: matchedMaskine,
+                    kode: kode,
+                    tid: tid,
+                    monthKey: formatMonthKey(dato),
+                    weekKey: formatWeekKey(dato)
+                });
+            }
+
+            return {
+                entries: entries,
+                ignoredLines: ignoredLines,
+                unknownMachineNames: Object.keys(unknownMachineNames)
+            };
+        }
+
+        function updateFilterOptionsFromData() {
+            var parsed = extractRawData();
+            var entries = parsed.entries;
+
+            var machineSet = {};
+            var monthSet = {};
+            var weekSet = {};
+
+            entries.forEach(function(e) {
+                machineSet[e.maskine] = true;
+                monthSet[e.monthKey] = true;
+                weekSet[e.weekKey] = true;
+            });
+
+            var machines = Object.keys(machineSet).sort(function(a, b) {
+                var ia = MASKINE_ORDER.indexOf(a);
+                var ib = MASKINE_ORDER.indexOf(b);
+                if (ia === -1 && ib === -1) return a.localeCompare(b, 'da');
+                if (ia === -1) return 1;
+                if (ib === -1) return -1;
+                return ia - ib;
+            });
+
+            var months = Object.keys(monthSet).sort();
+            var weeks = Object.keys(weekSet).sort();
+
+            var machineFilter = document.getElementById('machineFilter');
+            var monthFilter = document.getElementById('monthFilter');
+            var weekFilter = document.getElementById('weekFilter');
+
+            var currentMachine = machineFilter.value;
+            var currentMonth = monthFilter.value;
+            var currentWeek = weekFilter.value;
+
+            machineFilter.innerHTML = '<option value="">Alle maskiner</option>' +
+                machines.map(function(m) {
+                    return '<option value="' + escapeHtml(m) + '">' + escapeHtml(m) + '</option>';
+                }).join('');
+
+            monthFilter.innerHTML = '<option value="">Alle måneder</option>' +
+                months.map(function(m) {
+                    return '<option value="' + m + '">' + monthLabelFromKey(m) + '</option>';
+                }).join('');
+
+            weekFilter.innerHTML = '<option value="">Alle uger</option>' +
+                weeks.map(function(w) {
+                    return '<option value="' + w + '">' + weekLabelFromKey(w) + '</option>';
+                }).join('');
+
+            if ([].slice.call(machineFilter.options).some(function(o){ return o.value === currentMachine; })) machineFilter.value = currentMachine;
+            if ([].slice.call(monthFilter.options).some(function(o){ return o.value === currentMonth; })) monthFilter.value = currentMonth;
+            if ([].slice.call(weekFilter.options).some(function(o){ return o.value === currentWeek; })) weekFilter.value = currentWeek;
+        }
+
+        function aggregateCodes(entries) {
+            var sums = {};
+            var total = 0;
+
+            entries.forEach(function(e) {
+                if (!sums[e.kode]) sums[e.kode] = 0;
+                sums[e.kode] += e.tid;
+                total += e.tid;
+            });
+
+            var rows = Object.keys(sums).map(function(k) {
+                var kode = parseInt(k, 10);
+                return {
+                    kode: kode,
+                    navn: STOPKODER[kode] || ('Kode ' + kode),
+                    tid: sums[kode]
+                };
+            }).sort(function(a, b) {
+                if (b.tid !== a.tid) return b.tid - a.tid;
+                return a.kode - b.kode;
+            });
+
+            return { rows: rows, total: total };
+        }
+
+        function renderTable(agg) {
+            var html = '<table>';
+            html += '<thead><tr><th>Stopkode</th><th>Navn</th><th>Stop tid (min)</th></tr></thead><tbody>';
+
+            if (agg.rows.length === 0) {
+                html += '<tr><td colspan="3" class="muted">Ingen data i dette udvalg</td></tr>';
+            } else {
+                agg.rows.forEach(function(r) {
+                    html += '<tr>' +
+                        '<td class="code-val">' + r.kode + '</td>' +
+                        '<td>' + escapeHtml(r.navn) + '</td>' +
+                        '<td class="time-val">' + r.tid.toFixed(2) + '</td>' +
+                        '</tr>';
+                });
+            }
+
+            html += '<tr class="total-row">' +
+                '<td colspan="2">Total</td>' +
+                '<td class="total-val">' + agg.total.toFixed(2) + '</td>' +
+                '</tr>';
+
+            html += '</tbody></
