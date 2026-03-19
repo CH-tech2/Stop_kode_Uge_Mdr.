@@ -117,6 +117,7 @@
             display: flex;
             gap: 15px;
             align-items: center;
+            flex-wrap: wrap;
         }
         .group-select label {
             display: inline;
@@ -202,6 +203,7 @@
             border-radius: 8px;
             color: #777;
             font-size: 12px;
+            line-height: 1.5;
         }
         .error-msg {
             color: #D20014;
@@ -254,10 +256,6 @@ Eksempel:
     </div>
 
     <script>
-        /* ============================================
-           STOP KODE BEREGNER V2.3
-           ============================================ */
-
         var STOPKODER = {
             1: "Betjeningsfejl",
             2: "Granulering",
@@ -295,36 +293,61 @@ Eksempel:
             "Båndsav Linje"
         ];
 
+        var MAANEDER = [
+            "Januar", "Februar", "Marts", "April", "Maj", "Juni",
+            "Juli", "August", "September", "Oktober", "November", "December"
+        ];
+
         var globalResults = null;
 
         function normalizeName(name) {
             return name.trim().toLowerCase().replace(/\s+/g, ' ');
         }
 
+        function escapeHtml(text) {
+            return String(text)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
         function findMaskineMatch(inputName) {
             var norm = normalizeName(inputName);
+
             for (var i = 0; i < MASKINE_ORDER.length; i++) {
                 if (normalizeName(MASKINE_ORDER[i]) === norm) {
                     return MASKINE_ORDER[i];
                 }
             }
-            for (var i = 0; i < MASKINE_ORDER.length; i++) {
-                var orderNorm = normalizeName(MASKINE_ORDER[i]);
+
+            for (var j = 0; j < MASKINE_ORDER.length; j++) {
+                var orderNorm = normalizeName(MASKINE_ORDER[j]);
                 if (orderNorm.indexOf(norm) !== -1 || norm.indexOf(orderNorm) !== -1) {
-                    return MASKINE_ORDER[i];
+                    return MASKINE_ORDER[j];
                 }
             }
+
             return null;
         }
 
         function parseDato(str) {
             var parts = str.trim().split('-');
             if (parts.length !== 3) return null;
+
             var d = parseInt(parts[0], 10);
             var m = parseInt(parts[1], 10);
             var y = parseInt(parts[2], 10);
+
             if (isNaN(d) || isNaN(m) || isNaN(y)) return null;
-            return new Date(y, m - 1, d);
+
+            var date = new Date(y, m - 1, d);
+            if (date.getFullYear() !== y || date.getMonth() !== m - 1 || date.getDate() !== d) {
+                return null;
+            }
+
+            return date;
         }
 
         function getWeekNumber(date) {
@@ -336,8 +359,115 @@ Eksempel:
             return { year: d.getUTCFullYear(), week: weekNo };
         }
 
-        var MAANEDER = ["Januar", "Februar", "Marts", "April", "Maj", "Juni",
-            "Juli", "August", "September", "Oktober", "November", "December"];
+        function getGroupLabel(date, groupBy) {
+            if (groupBy === 'uge') {
+                var wk = getWeekNumber(date);
+                return 'Uge ' + wk.week + ' (' + wk.year + ')';
+            }
+
+            if (groupBy === 'maaned') {
+                return MAANEDER[date.getMonth()] + ' ' + date.getFullYear();
+            }
+
+            return 'Samlet';
+        }
+
+        function sortGroupLabels(labels, groupBy) {
+            return labels.sort(function(a, b) {
+                if (groupBy === 'none') return 0;
+
+                if (groupBy === 'uge') {
+                    var ma = a.match(/Uge\s+(\d+)\s+\((\d+)\)/);
+                    var mb = b.match(/Uge\s+(\d+)\s+\((\d+)\)/);
+                    if (!ma || !mb) return a.localeCompare(b, 'da');
+                    var ay = parseInt(ma[2], 10), aw = parseInt(ma[1], 10);
+                    var by = parseInt(mb[2], 10), bw = parseInt(mb[1], 10);
+                    if (ay !== by) return ay - by;
+                    return aw - bw;
+                }
+
+                if (groupBy === 'maaned') {
+                    function monthIndex(label) {
+                        for (var i = 0; i < MAANEDER.length; i++) {
+                            if (label.indexOf(MAANEDER[i]) === 0) return i;
+                        }
+                        return -1;
+                    }
+                    var aYear = parseInt(a.split(' ').pop(), 10);
+                    var bYear = parseInt(b.split(' ').pop(), 10);
+                    if (aYear !== bYear) return aYear - bYear;
+                    return monthIndex(a) - monthIndex(b);
+                }
+
+                return a.localeCompare(b, 'da');
+            });
+        }
+
+        function compareMaskiner(a, b) {
+            var ia = MASKINE_ORDER.indexOf(a);
+            var ib = MASKINE_ORDER.indexOf(b);
+
+            if (ia === -1 && ib === -1) return a.localeCompare(b, 'da');
+            if (ia === -1) return 1;
+            if (ib === -1) return -1;
+            return ia - ib;
+        }
+
+        function formatNumber(n) {
+            return Number(n).toLocaleString('da-DK', {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 2
+            });
+        }
+
+        function buildTableHtml(groupData, groupName) {
+            var machines = Object.keys(groupData).sort(compareMaskiner);
+            var html = '<h3>' + escapeHtml(groupName) + '</h3>';
+            html += '<table>';
+            html += '<thead><tr><th>Maskine</th><th>Stopkode</th><th>Navn</th><th>Minutter</th></tr></thead><tbody>';
+
+            var grandTotal = 0;
+
+            for (var i = 0; i < machines.length; i++) {
+                var maskine = machines[i];
+                var codeMap = groupData[maskine];
+                var codes = Object.keys(codeMap).map(Number).sort(function(a, b) { return a - b; });
+
+                var machineTotal = 0;
+                for (var c = 0; c < codes.length; c++) {
+                    machineTotal += codeMap[codes[c]];
+                }
+
+                for (var j = 0; j < codes.length; j++) {
+                    var kode = codes[j];
+                    var navn = STOPKODER[kode] || 'Ukendt';
+                    var minutter = codeMap[kode];
+
+                    html += '<tr>';
+                    html += '<td>' + escapeHtml(maskine) + '</td>';
+                    html += '<td class="code-val">' + kode + '</td>';
+                    html += '<td>' + escapeHtml(navn) + '</td>';
+                    html += '<td class="time-val">' + formatNumber(minutter) + '</td>';
+                    html += '</tr>';
+                }
+
+                html += '<tr class="total-row">';
+                html += '<td>' + escapeHtml(maskine) + '</td>';
+                html += '<td colspan="2">Total for maskine</td>';
+                html += '<td class="total-val">' + formatNumber(machineTotal) + '</td>';
+                html += '</tr>';
+
+                grandTotal += machineTotal;
+            }
+
+            html += '<tr class="total-row">';
+            html += '<td colspan="3">Grand Total</td>';
+            html += '<td class="total-val">' + formatNumber(grandTotal) + '</td>';
+            html += '</tr>';
+
+            html += '</tbody></table>';
+            return html;
+        }
 
         function beregn() {
             var raw = document.getElementById('dataInput').value.trim();
@@ -352,6 +482,8 @@ Eksempel:
             resultSection.style.display = 'none';
             btnPdf.style.display = 'none';
             resultContent.innerHTML = '';
+            ignoredInfo.innerHTML = '';
+            globalResults = null;
 
             if (!raw) {
                 errorEl.textContent = '⚠️ Indsæt venligst data først!';
@@ -359,7 +491,7 @@ Eksempel:
                 return;
             }
 
-            var lines = raw.split('\n');
+            var lines = raw.split(/\r?\n/);
             var entries = [];
             var ignoredLines = 0;
             var unknownMachineNames = {};
@@ -377,12 +509,11 @@ Eksempel:
                 var datoStr = parts[0].trim();
                 var maskineStr = parts[1].trim();
                 var kodeStr = parts[2].trim();
-                var tidStr = parts[3].trim();
+                var tidStr = parts[3].trim().replace(',', '.');
 
                 var dato = parseDato(datoStr);
                 var tid = parseFloat(tidStr);
 
-                // Parse stopkode (kan være "8: Rengøring" eller bare "8")
                 var kodeMatch = kodeStr.match(/^(\d+)/);
                 var kode = kodeMatch ? parseInt(kodeMatch[1], 10) : null;
 
@@ -402,3 +533,166 @@ Eksempel:
                     maskine: matchedMaskine,
                     kode: kode,
                     tid: tid
+                });
+            }
+
+            if (entries.length === 0) {
+                errorEl.textContent = '⚠️ Ingen gyldige data fundet. Tjek at formatet er: Dato [TAB] Maskine [TAB] Stopkode [TAB] Tid';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            var grouped = {};
+
+            for (var i = 0; i < entries.length; i++) {
+                var entry = entries[i];
+                var groupLabel = getGroupLabel(entry.dato, groupBy);
+
+                if (!grouped[groupLabel]) grouped[groupLabel] = {};
+                if (!grouped[groupLabel][entry.maskine]) grouped[groupLabel][entry.maskine] = {};
+                if (!grouped[groupLabel][entry.maskine][entry.kode]) grouped[groupLabel][entry.maskine][entry.kode] = 0;
+
+                grouped[groupLabel][entry.maskine][entry.kode] += entry.tid;
+            }
+
+            var groupLabels = sortGroupLabels(Object.keys(grouped), groupBy);
+            var html = '';
+
+            for (var g = 0; g < groupLabels.length; g++) {
+                html += buildTableHtml(grouped[groupLabels[g]], groupLabels[g]);
+            }
+
+            resultContent.innerHTML = html;
+            resultSection.style.display = 'block';
+            btnPdf.style.display = 'inline-block';
+
+            var info = [];
+            info.push('Gyldige rækker behandlet: ' + entries.length);
+            info.push('Ignorerede rækker: ' + ignoredLines);
+
+            var unknownList = Object.keys(unknownMachineNames);
+            if (unknownList.length > 0) {
+                info.push('Ukendte maskinnavne beholdt som de stod: ' + unknownList.join(', '));
+            }
+
+            ignoredInfo.innerHTML = info.join('<br>');
+
+            globalResults = {
+                grouped: grouped,
+                groupLabels: groupLabels,
+                groupBy: groupBy,
+                entries: entries
+            };
+        }
+
+        function ryd() {
+            document.getElementById('dataInput').value = '';
+            document.getElementById('resultContent').innerHTML = '';
+            document.getElementById('ignoredInfo').innerHTML = '';
+            document.getElementById('resultSection').style.display = 'none';
+            document.getElementById('errorMsg').style.display = 'none';
+            document.getElementById('btnPdf').style.display = 'none';
+            globalResults = null;
+        }
+
+        function downloadPdf() {
+            if (!globalResults) {
+                alert('Der er ingen resultater at eksportere endnu.');
+                return;
+            }
+
+            var jsPDF = window.jspdf.jsPDF;
+            var doc = new jsPDF('p', 'mm', 'a4');
+
+            doc.setFontSize(16);
+            doc.setTextColor(210, 0, 20);
+            doc.text('Stop Kode Beregner - Rapport', 14, 15);
+
+            doc.setFontSize(10);
+            doc.setTextColor(100, 100, 100);
+            doc.text('Genereret: ' + new Date().toLocaleString('da-DK'), 14, 22);
+
+            var startY = 30;
+
+            for (var g = 0; g < globalResults.groupLabels.length; g++) {
+                var groupName = globalResults.groupLabels[g];
+                var groupData = globalResults.grouped[groupName];
+                var machines = Object.keys(groupData).sort(compareMaskiner);
+
+                if (startY > 250) {
+                    doc.addPage();
+                    startY = 20;
+                }
+
+                doc.setFontSize(12);
+                doc.setTextColor(32, 134, 132);
+                doc.text(groupName, 14, startY);
+                startY += 4;
+
+                var body = [];
+                var grandTotal = 0;
+
+                for (var i = 0; i < machines.length; i++) {
+                    var maskine = machines[i];
+                    var codeMap = groupData[maskine];
+                    var codes = Object.keys(codeMap).map(Number).sort(function(a, b) { return a - b; });
+
+                    var machineTotal = 0;
+
+                    for (var j = 0; j < codes.length; j++) {
+                        var kode = codes[j];
+                        var minutter = codeMap[kode];
+                        machineTotal += minutter;
+
+                        body.push([
+                            maskine,
+                            String(kode),
+                            STOPKODER[kode] || 'Ukendt',
+                            formatNumber(minutter)
+                        ]);
+                    }
+
+                    body.push([
+                        maskine,
+                        '',
+                        'Total for maskine',
+                        formatNumber(machineTotal)
+                    ]);
+
+                    grandTotal += machineTotal;
+                }
+
+                body.push([
+                    '',
+                    '',
+                    'Grand Total',
+                    formatNumber(grandTotal)
+                ]);
+
+                doc.autoTable({
+                    startY: startY,
+                    head: [['Maskine', 'Stopkode', 'Navn', 'Minutter']],
+                    body: body,
+                    theme: 'grid',
+                    styles: {
+                        fontSize: 8,
+                        cellPadding: 2
+                    },
+                    headStyles: {
+                        fillColor: [15, 52, 96],
+                        textColor: [32, 134, 132]
+                    },
+                    alternateRowStyles: {
+                        fillColor: [245, 245, 245]
+                    },
+                    margin: { left: 14, right: 14 }
+                });
+
+                startY = doc.lastAutoTable.finalY + 10;
+            }
+
+            doc.save('stopkode_rapport.pdf');
+        }
+    </script>
+</body>
+</html>
