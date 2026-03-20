@@ -1,10 +1,46 @@
+<!-- Kontrolleret version V4.3 -->
+<!-- Stopkodeberegner - Version 4.0 -->
 <!DOCTYPE html>
 <html lang="da">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stop Kode Beregner V3.0</title>
+    <title>Stopkodeberegner - Version 4.0</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+// --- V3.9 compatibility fixes ---
+function formatYearTotalLabel(year){
+  return 'ÅRSTOTAL ' + year;
+}
+function getYearTotalsForMachine(machineName, data){
+  const yearMap = {};
+  const rows = Array.isArray(data) ? data : (typeof globalEntries !== 'undefined' ? globalEntries : []);
+  rows.forEach(row => {
+    if (!row) return;
+    const m = row.machine || row.maskine || row.machineName || '';
+    if (String(m).trim() !== String(machineName).trim()) return;
+    const d = row.date || row.dato || row.month || '';
+    let year = '';
+    if (typeof d === 'string') {
+      const m1 = d.match(/(20\d{2})/);
+      if (m1) year = m1[1];
+    }
+    if (!year) year = String(new Date().getFullYear());
+    if (!yearMap[year]) yearMap[year] = {};
+    const code = String(row.kode || row.code || '');
+    const minutes = Number(row.tid || row.minutes || row.minutter || row.duration || 0) || 0;
+    yearMap[year][code] = (yearMap[year][code] || 0) + minutes;
+  });
+  return yearMap;
+}
+
+document.addEventListener('DOMContentLoaded', function(){
+  ['results','result','output','summary'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el) el.style.display = 'none';
+  });
+});
+</script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -44,235 +80,253 @@
         .input-section label, .filter-section label {
             display: block;
             margin-bottom: 8px;
-            font-weight: bold;
-            color: #208684;
-            font-size: 16px;
-        }
-        .input-section p {
-            margin-bottom: 12px;
-            color: #999;
-            font-size: 13px;
+            color: #D20014;
+            font-weight: 600;
         }
         textarea {
             width: 100%;
-            height: 220px;
-            background: #0f0f23;
-            color: #e0e0e0;
-            border: 1px solid #333;
+            min-height: 220px;
+            background: #0f3460;
+            color: #fff;
+            border: 1px solid #533483;
             border-radius: 8px;
             padding: 12px;
-            font-family: 'Consolas', 'Courier New', monospace;
+            font-family: monospace;
             font-size: 13px;
             resize: vertical;
         }
-        textarea:focus, select:focus, input:focus { outline: none; border-color: #208684; }
-        .controls-row, .date-range-row {
-            display: flex;
+        textarea:focus, select:focus, input:focus {
+            outline: none;
+            border-color: #D20014;
+            box-shadow: 0 0 0 2px rgba(210,0,20,0.2);
+        }
+        .controls-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
             gap: 15px;
-            flex-wrap: wrap;
             margin-top: 15px;
             align-items: end;
         }
         .control-group {
             display: flex;
             flex-direction: column;
-            min-width: 220px;
-            flex: 1;
         }
-        .control-group select, .control-group input[type="date"], .control-group input[type="text"] {
-            background: #0f0f23;
-            color: #e0e0e0;
-            border: 1px solid #333;
-            border-radius: 6px;
-            padding: 10px 12px;
+        select, input[type="date"] {
+            background: #0f3460;
+            color: #fff;
+            border: 1px solid #533483;
+            border-radius: 8px;
+            padding: 10px;
             font-size: 14px;
         }
         .checkbox-inline {
             display: flex;
             align-items: center;
             gap: 8px;
-            min-height: 42px;
-            background: #0f0f23;
-            border: 1px solid #333;
-            border-radius: 6px;
-            padding: 10px 12px;
-            color: #e0e0e0;
-            font-size: 14px;
+            margin-top: 10px;
+            color: #ddd;
         }
-        .checkbox-inline input { transform: scale(1.1); }
-        .buttons {
-            margin-top: 20px;
+        .checkbox-inline input[type="checkbox"] {
+            transform: scale(1.2);
+        }
+        .date-range-row {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .button-row {
             display: flex;
-            gap: 10px;
+            gap: 12px;
+            margin-top: 18px;
             flex-wrap: wrap;
         }
-        .btn {
-            padding: 12px 24px;
+        button {
+            background: linear-gradient(135deg, #D20014, #9F000F);
+            color: white;
             border: none;
             border-radius: 8px;
-            font-size: 15px;
-            font-weight: bold;
+            padding: 12px 18px;
+            font-size: 14px;
+            font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: 0.2s ease;
         }
-        .btn-calc { background: #D20014; color: white; }
-        .btn-calc:hover { background: #9F000F; }
-        .btn-clear { background: #333; color: #ccc; }
-        .btn-clear:hover { background: #555; }
-        .btn-pdf { background: #208684; color: white; }
-        .btn-pdf:hover { background: #186462; }
-        .btn-small { padding: 8px 12px; font-size: 13px; }
-        .result-section { display: none; }
-        .result-section h2 {
-            color: #208684;
-            margin-bottom: 15px;
-            font-size: 22px;
+        button:hover {
+            transform: translateY(-1px);
+            opacity: 0.95;
         }
-        .result-section h3 {
-            color: #D20014;
-            margin: 25px 0 10px 0;
-            font-size: 18px;
-            border-bottom: 1px solid #0f3460;
-            padding-bottom: 6px;
+        button.secondary {
+            background: linear-gradient(135deg, #208684, #176665);
         }
-        .result-section h4 {
-            color: #f0a500;
-            margin: 20px 0 8px 0;
-            font-size: 15px;
+        button.gray {
+            background: linear-gradient(135deg, #656565, #4d4d4d);
         }
-        .machine-section {
-            margin-bottom: 35px;
-            padding: 15px;
-            border: 1px solid #243b63;
-            border-radius: 10px;
-            background: #111a33;
+        .error {
+            margin-top: 12px;
+            color: #ff8b8b;
+            font-size: 13px;
+            white-space: pre-line;
         }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 18px;
+        .success {
+            margin-top: 12px;
+            color: #8bffb0;
+            font-size: 13px;
         }
-        th {
+        .pdf-machine-box {
+            margin-top: 18px;
             background: #0f3460;
-            color: #208684;
-            padding: 12px 15px;
-            text-align: left;
-            font-size: 14px;
-            border-bottom: 2px solid #208684;
+            border: 1px solid #533483;
+            border-radius: 10px;
+            padding: 15px;
         }
-        td {
-            padding: 10px 15px;
-            border-bottom: 1px solid #1a1a3e;
-            font-size: 14px;
-        }
-        tr:hover { background: #1a1a3e; }
-        .total-row {
-            background: #0f3460 !important;
-            font-weight: bold;
+        .pdf-machine-title {
             color: #D20014;
+            font-weight: 700;
+            margin-bottom: 12px;
         }
-        .total-row td {
-            border-top: 2px solid #208684;
-            font-size: 15px;
-        }
-        .summary-box {
-            background: #10182d;
-            border: 1px solid #20385f;
-            border-radius: 8px;
-            padding: 12px 15px;
-            margin-bottom: 15px;
-            color: #ccc;
-        }
-        .ignored-info {
-            margin-top: 15px;
-            padding: 10px 15px;
-            background: #1a1a2e;
-            border-radius: 8px;
-            color: #777;
-            font-size: 12px;
-        }
-        .error-msg {
-            color: #ff9fa8;
-            background: #2a0a0a;
-            padding: 12px;
-            border-radius: 8px;
-            margin-top: 10px;
-            display: none;
-        }
-        .success-msg {
-            color: #9ff3d1;
-            background: #0f2a22;
-            padding: 12px;
-            border-radius: 8px;
-            margin-top: 10px;
-            display: none;
-        }
-        .checkbox-list {
+        .pdf-machine-list {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
             gap: 8px;
-            margin-top: 10px;
-            background: #0f0f23;
-            padding: 12px;
-            border-radius: 8px;
-            border: 1px solid #333;
-            max-height: 260px;
-            overflow-y: auto;
         }
-        .checkbox-list label {
+        .pdf-machine-item {
             display: flex;
             align-items: center;
             gap: 8px;
             color: #ddd;
             font-size: 14px;
-            margin: 0;
-            font-weight: normal;
         }
-        .top-actions {
+        .machine-block {
+            margin-top: 22px;
+            border-top: 2px solid #0f3460;
+            padding-top: 18px;
+        }
+        .machine-title {
+            color: #D20014;
+            margin-bottom: 14px;
+            font-size: 20px;
+        }
+        .summary-line {
+            color: #ccc;
+            margin-bottom: 14px;
+            font-size: 13px;
+        }
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 15px;
+        }
+        .section-card {
+            background: #0f3460;
+            border: 1px solid #533483;
+            border-radius: 10px;
+            padding: 14px;
+        }
+        .section-card h3, .section-card h4 {
+            color: #fff;
+            margin-bottom: 10px;
+        }
+        .table-wrap {
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        th, td {
+            border: 1px solid #2f4f7f;
+            padding: 8px 10px;
+            text-align: left;
+        }
+        th {
+            background: #1b4f72;
+            color: #fff;
+        }
+        tr:nth-child(even) td {
+            background: rgba(255,255,255,0.03);
+        }
+        .row-top-1 td { background: rgba(210,0,20,0.20) !important; }
+        .row-top-2 td { background: rgba(255,165,0,0.20) !important; }
+        .row-top-3 td { background: rgba(32,134,132,0.20) !important; }
+        .total-row td {
+            font-weight: 700;
+            color: #fff;
+            background: rgba(255,255,255,0.06) !important;
+        }
+        .year-total-section {
+            border: 1px solid #D20014;
+            box-shadow: 0 0 0 1px rgba(210,0,20,0.25);
+        }
+        .year-total-section h3 {
+            color: #ffb3bb;
+        }
+        .legend {
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
-            margin-bottom: 10px;
-        }
-        .muted {
-            color: #888;
+            margin-bottom: 15px;
+            color: #ccc;
             font-size: 12px;
-            margin-top: 8px;
-        }
-        .row-top-1 { background: rgba(210, 0, 20, 0.22) !important; }
-        .row-top-2 { background: rgba(240, 165, 0, 0.18) !important; }
-        .row-top-3 { background: rgba(32, 134, 132, 0.18) !important; }
-        .legend {
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-            margin: 8px 0 14px 0;
-            font-size: 12px;
-            color: #bbb;
         }
         .legend span {
             display: inline-flex;
             align-items: center;
             gap: 6px;
         }
-        .legend-box {
-            width: 14px;
-            height: 14px;
-            border-radius: 3px;
+        .legend i {
             display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+        .legend .gold { background: rgba(210,0,20,0.55); }
+        .legend .silver { background: rgba(255,165,0,0.55); }
+        .legend .bronze { background: rgba(32,134,132,0.55); }
+        .footer-note {
+            text-align: center;
+            color: #777;
+            margin-top: 14px;
+            font-size: 12px;
         }
         .hidden { display: none !important; }
-    </style>
+    
+    .version-note{
+      margin:12px 0 18px 0;
+      padding:12px 14px;
+      border-left:4px solid #D20014;
+      background:#fff5f6;
+      border-radius:8px;
+      color:#333;
+      font-size:14px;
+      line-height:1.45;
+    }
+    .version-note strong{color:#9F000F;}
+    
+
+    @media (max-width: 768px){
+      body{padding:10px !important;}
+      .container, .wrapper, main{max-width:100% !important; width:100% !important; padding:12px !important; box-sizing:border-box;}
+      table{display:block; overflow-x:auto; white-space:nowrap;}
+      input, select, button, textarea{max-width:100%;}
+    }
+    
+
+.hidden-on-start{display:none !important;}
+</style>
 </head>
 <body>
+    
+    
 <div class="container">
     <h1>⏱️ Stop Kode Beregner</h1>
     <p class="subtitle">Analyse af stop tid pr. maskine, uge, måned og år</p>
-    <p class="version">Version 3.0</p>
+    <p class="version">Version 4.0</p>
 
     <div class="input-section">
         <label for="dataInput">📋 Indsæt data fra Excel her:</label>
-        <p>Forventet format: <strong>Dato [TAB] Maskine [TAB] Stopkode: Navn [TAB] Tid i minutter</strong></p>
+        
         <textarea id="dataInput" placeholder="Eksempel:
 17-03-2026	PSM01	8: Rengøring	30
 17-03-2026	PSM01	11: Maskinstop	15
@@ -322,45 +376,32 @@
             </div>
         </div>
 
-        <div class="buttons">
-            <button class="btn btn-calc" onclick="beregn()">⚡ Beregn</button>
-            <button class="btn btn-clear" onclick="ryd()">🗑️ Ryd</button>
-            <button class="btn btn-pdf" id="btnPdf" onclick="downloadPdf()" style="display:none;">📄 Download PDF</button>
+        <div class="button-row">
+            <button onclick="analyzeData()">Analyser data</button>
+            <button class="secondary" onclick="downloadPdf()">Download PDF</button>
+            <button class="gray" onclick="clearAll()">Ryd alt</button>
         </div>
 
-        <div class="error-msg" id="errorMsg"></div>
-        <div class="success-msg" id="successMsg"></div>
-    </div>
+        <div id="statusMessage"></div>
 
-    <div class="filter-section" id="stopkodeFilterSection" style="display:none;">
-        <label>🧩 Vælg specifikke stopkoder der skal med i analysen</label>
-        <div class="top-actions">
-            <button class="btn btn-small btn-clear" type="button" onclick="markAllStopkoder(true)">Vælg alle</button>
-            <button class="btn btn-small btn-clear" type="button" onclick="markAllStopkoder(false)">Fjern alle</button>
+        <div class="pdf-machine-box">
+            <div class="pdf-machine-title">🖨️ Vælg maskiner til PDF</div>
+            <div style="display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap;">
+                <button type="button" class="secondary" onclick="selectAllPdfMachines()">Vælg alle</button>
+                <button type="button" class="gray" onclick="deselectAllPdfMachines()">Fravælg alle</button>
+            </div>
+            <div class="pdf-machine-list" id="pdfMachineList"></div>
         </div>
-        <div class="checkbox-list" id="stopkodeList"></div>
-        <div class="muted">Kun valgte stopkoder medtages i analysen, totaler og PDF.</div>
     </div>
 
-    <div class="filter-section" id="pdfFilterSection" style="display:none;">
-        <label>📑 Vælg hvilke maskiner der skal med i PDF</label>
-        <div class="top-actions">
-            <button class="btn btn-small btn-clear" type="button" onclick="markAllPdfMachines(true)">Vælg alle</button>
-            <button class="btn btn-small btn-clear" type="button" onclick="markAllPdfMachines(false)">Fjern alle</button>
-        </div>
-        <div class="checkbox-list" id="pdfMachineList"></div>
-        <div class="muted">Kun valgte maskiner eksporteres til PDF.</div>
-    </div>
-
-    <div class="result-section" id="resultSection">
-        <h2>📊 Resultat</h2>
+    <div class="result-section hidden-on-start" id="results">
         <div class="legend">
-            <span><i class="legend-box" style="background: rgba(210,0,20,0.22);"></i> Største stopårsag</span>
-            <span><i class="legend-box" style="background: rgba(240,165,0,0.18);"></i> Næststørste stopårsag</span>
-            <span><i class="legend-box" style="background: rgba(32,134,132,0.18);"></i> Tredjestørste stopårsag</span>
+            <span><i class="gold"></i> Top 1</span>
+            <span><i class="silver"></i> Top 2</span>
+            <span><i class="bronze"></i> Top 3</span>
         </div>
-        <div id="resultContent"></div>
-        <div class="ignored-info" id="ignoredInfo"></div>
+        <div id="resultsContent"></div>
+        <p class="footer-note">PDF indeholder samme filtrering som visningen samt valgte maskiner.</p>
     </div>
 </div>
 
@@ -387,7 +428,7 @@ var STOPKODER = {
 var MASKINE_ORDER = [
     "PSM01", "PSM02", "Teclict Sav3", "Lamelmåtten", "Krymperen",
     "RPI XII", "Sav 42", "Sav 44", "Sav 46", "Sav 48",
-    "Rundsav (Sav35)", "Valse", "Båndsav 33", "Båndsav 34", "Båndsav Linje"
+    "Rundsav (Sav4_0)", "Valse", "Båndsav 33", "Båndsav 34", "Båndsav Linje"
 ];
 
 var MAANEDER = [
@@ -407,52 +448,33 @@ function findMaskineMatch(inputName) {
     for (var i = 0; i < MASKINE_ORDER.length; i++) {
         if (normalizeName(MASKINE_ORDER[i]) === norm) return MASKINE_ORDER[i];
     }
-    for (var j = 0; j < MASKINE_ORDER.length; j++) {
-        var orderNorm = normalizeName(MASKINE_ORDER[j]);
-        if (orderNorm.indexOf(norm) !== -1 || norm.indexOf(orderNorm) !== -1) return MASKINE_ORDER[j];
-    }
     return inputName.trim();
 }
 
-function parseDato(str) {
-    var parts = str.trim().split('-');
-    if (parts.length !== 3) return null;
-    var d = parseInt(parts[0], 10);
-    var m = parseInt(parts[1], 10);
-    var y = parseInt(parts[2], 10);
-    if (isNaN(d) || isNaN(m) || isNaN(y)) return null;
-    var dt = new Date(y, m - 1, d);
-    if (isNaN(dt.getTime())) return null;
-    if (dt.getDate() !== d || dt.getMonth() !== m - 1 || dt.getFullYear() !== y) return null;
+function parseDateDMY(dateStr) {
+    var m = String(dateStr).trim().match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+    if (!m) return null;
+    var d = parseInt(m[1], 10);
+    var mo = parseInt(m[2], 10) - 1;
+    var y = parseInt(m[3], 10);
+    var dt = new Date(y, mo, d);
+    if (dt.getFullYear() !== y || dt.getMonth() !== mo || dt.getDate() !== d) return null;
     return dt;
 }
 
-function parseInputDateValue(value) {
-    if (!value) return null;
-    var parts = value.split("-");
-    if (parts.length !== 3) return null;
-    var y = parseInt(parts[0], 10);
-    var m = parseInt(parts[1], 10);
-    var d = parseInt(parts[2], 10);
-    if (isNaN(y) || isNaN(m) || isNaN(d)) return null;
-    return new Date(y, m - 1, d);
-}
-
-function getWeekNumber(date) {
-    var d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-    var dayNum = d.getUTCDay() || 7;
-    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-    var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-    var weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-    return { year: d.getUTCFullYear(), week: weekNo };
-}
-
-function getMonthKey(date) {
-    return date.getFullYear() + "-" + String(date.getMonth() + 1).padStart(2, "0");
+function getISODateString(date) {
+    var y = date.getFullYear();
+    var m = String(date.getMonth() + 1).padStart(2, "0");
+    var d = String(date.getDate()).padStart(2, "0");
+    return y + "-" + m + "-" + d;
 }
 
 function getYearKey(date) {
     return String(date.getFullYear());
+}
+
+function getMonthKey(date) {
+    return date.getFullYear() + "-" + String(date.getMonth() + 1).padStart(2, "0");
 }
 
 function getMonthLabel(monthKey) {
@@ -478,6 +500,29 @@ function escapeHtml(text) {
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
 }
+
+function formatMinutesPdf(val) {
+    return Number(val || 0).toFixed(2).replace(".", ",");
+}
+
+function getYearRowsForMachine(machineEntries) {
+    var yearEntryMap = {};
+    for (var i = 0; i < machineEntries.length; i++) {
+        var yearKey = getYearKey(machineEntries[i].dato);
+        if (!yearEntryMap[yearKey]) yearEntryMap[yearKey] = [];
+        yearEntryMap[yearKey].push(machineEntries[i]);
+    }
+    var result = {};
+    var yearKeys = Object.keys(yearEntryMap).sort();
+    for (var y = 0; y < yearKeys.length; y++) {
+        var year = yearKeys[y];
+        result[year] = aggregateCodes(yearEntryMap[year]).map(function(r) {
+            return { code: r.kode, name: r.navn, minutes: r.tid };
+        });
+    }
+    return result;
+}
+
 
 function aggregateCodes(entries) {
     var map = {};
@@ -522,569 +567,83 @@ function buildTableHtml(rows, title) {
     return html;
 }
 
+function getWeekNumber(date) {
+    var d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    var dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    var weekNum = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+    return { week: weekNum, year: d.getUTCFullYear() };
+}
+
+function sortMachineList(arr) {
+    return arr.slice().sort(function(a, b) {
+        var ia = MASKINE_ORDER.indexOf(a);
+        var ib = MASKINE_ORDER.indexOf(b);
+        if (ia === -1 && ib === -1) return a.localeCompare(b, "da");
+        if (ia === -1) return 1;
+        if (ib === -1) return -1;
+        return ia - ib;
+    });
+}
+
+function showStatus(msg, isError) {
+    var box = document.getElementById("statusMessage");
+    box.className = isError ? "error" : "success";
+    box.textContent = msg || "";
+}
+
 function showError(msg) {
-    var el = document.getElementById("errorMsg");
-    el.textContent = msg;
-    el.style.display = "block";
-    document.getElementById("successMsg").style.display = "none";
+    showStatus(msg, true);
 }
 
 function showSuccess(msg) {
-    var el = document.getElementById("successMsg");
-    el.textContent = msg;
-    el.style.display = "block";
-    document.getElementById("errorMsg").style.display = "none";
+    showStatus(msg, false);
 }
 
-function clearMessages() {
-    document.getElementById("errorMsg").style.display = "none";
-    document.getElementById("successMsg").style.display = "none";
+function clearStatus() {
+    showStatus("", false);
+    document.getElementById("statusMessage").className = "";
 }
 
-function populateFilters(entries) {
-    var machineSelect = document.getElementById("filterMachine");
-    var monthSelect = document.getElementById("filterMonth");
-    var currentMachine = machineSelect.value;
-    var currentMonth = monthSelect.value;
+function populateMachineFilter(entries) {
+    var select = document.getElementById("filterMachine");
+    var current = select.value;
     var machines = {};
+    for (var i = 0; i < entries.length; i++) machines[entries[i].maskine] = true;
+    var list = sortMachineList(Object.keys(machines));
+
+    select.innerHTML = '<option value="">Alle maskiner</option>';
+    for (var j = 0; j < list.length; j++) {
+        var opt = document.createElement("option");
+        opt.value = list[j];
+        opt.textContent = list[j];
+        select.appendChild(opt);
+    }
+    if (list.indexOf(current) !== -1 || current === "") select.value = current;
+}
+
+function populateMonthFilter(entries) {
+    var select = document.getElementById("filterMonth");
+    var current = select.value;
     var months = {};
-    for (var i = 0; i < entries.length; i++) {
-        machines[entries[i].maskine] = true;
-        months[getMonthKey(entries[i].dato)] = true;
+    for (var i = 0; i < entries.length; i++) months[getMonthKey(entries[i].dato)] = true;
+    var list = Object.keys(months).sort();
+
+    select.innerHTML = '<option value="">Alle måneder</option>';
+    for (var j = 0; j < list.length; j++) {
+        var opt = document.createElement("option");
+        opt.value = list[j];
+        opt.textContent = getMonthLabel(list[j]);
+        select.appendChild(opt);
     }
-    var machineList = Object.keys(machines).sort(function(a, b) {
-        var ia = MASKINE_ORDER.indexOf(a);
-        var ib = MASKINE_ORDER.indexOf(b);
-        if (ia === -1 && ib === -1) return a.localeCompare(b, 'da');
-        if (ia === -1) return 1;
-        if (ib === -1) return -1;
-        return ia - ib;
-    });
-    var monthList = Object.keys(months).sort();
-
-    machineSelect.innerHTML = '<option value="">Alle maskiner</option>';
-    for (var m = 0; m < machineList.length; m++) {
-        machineSelect.innerHTML += '<option value="' + escapeHtml(machineList[m]) + '">' + escapeHtml(machineList[m]) + '</option>';
-    }
-
-    monthSelect.innerHTML = '<option value="">Alle måneder</option>';
-    for (var mo = 0; mo < monthList.length; mo++) {
-        monthSelect.innerHTML += '<option value="' + monthList[mo] + '">' + getMonthLabel(monthList[mo]) + '</option>';
-    }
-
-    if (machineList.indexOf(currentMachine) !== -1) machineSelect.value = currentMachine;
-    if (monthList.indexOf(currentMonth) !== -1) monthSelect.value = currentMonth;
-
-    buildPdfMachineList(machineList);
-    buildStopkodeFilter();
+    if (list.indexOf(current) !== -1 || current === "") select.value = current;
 }
 
-function buildPdfMachineList(machineList) {
-    var container = document.getElementById("pdfMachineList");
-    var section = document.getElementById("pdfFilterSection");
-    var currentSelected = getSelectedPdfMachines();
-    var useCurrent = currentSelected.length > 0;
-    container.innerHTML = "";
-    if (!machineList.length) {
-        section.style.display = "none";
-        return;
-    }
-    for (var i = 0; i < machineList.length; i++) {
-        var machine = machineList[i];
-        var checked = !useCurrent || currentSelected.indexOf(machine) !== -1;
-        container.innerHTML += '<label><input type="checkbox" class="pdf-machine-check" value="' + escapeHtml(machine) + '"' + (checked ? ' checked' : '') + '> ' + escapeHtml(machine) + '</label>';
-    }
-    section.style.display = "block";
-}
+function populatePdfMachineList(entries) {
+    var wrap = document.getElementById("pdfMachineList");
+    var prevChecked = {};
+    var boxes = wrap.querySelectorAll("input[type='checkbox']");
+    for (var i = 0; i < boxes.length; i++) prevChecked[boxes[i].value] = boxes[i].checked;
 
-function buildStopkodeFilter() {
-    var container = document.getElementById("stopkodeList");
-    var section = document.getElementById("stopkodeFilterSection");
-    var currentSelected = getSelectedStopkoder();
-    var useCurrent = currentSelected.length > 0;
-    container.innerHTML = "";
-    for (var k = 1; k <= 16; k++) {
-        var checked = !useCurrent || currentSelected.indexOf(k) !== -1;
-        container.innerHTML += '<label><input type="checkbox" class="stopkode-check" value="' + k + '"' + (checked ? ' checked' : '') + ' onchange="renderResults()"> ' + k + ': ' + escapeHtml(STOPKODER[k]) + '</label>';
-    }
-    section.style.display = "block";
-}
 
-function markAllPdfMachines(state) {
-    var checks = document.querySelectorAll(".pdf-machine-check");
-    for (var i = 0; i < checks.length; i++) checks[i].checked = state;
-}
-
-function markAllStopkoder(state) {
-    var checks = document.querySelectorAll(".stopkode-check");
-    for (var i = 0; i < checks.length; i++) checks[i].checked = state;
-    renderResults();
-}
-
-function getSelectedPdfMachines() {
-    var checks = document.querySelectorAll(".pdf-machine-check:checked");
-    var selected = [];
-    for (var i = 0; i < checks.length; i++) selected.push(checks[i].value);
-    return selected;
-}
-
-function getSelectedStopkoder() {
-    var checks = document.querySelectorAll(".stopkode-check:checked");
-    var selected = [];
-    for (var i = 0; i < checks.length; i++) selected.push(parseInt(checks[i].value, 10));
-    return selected;
-}
-
-function parseData(raw) {
-    var lines = raw.split(/\r?\n/);
-    var entries = [];
-    var ignoredLines = 0;
-    var unknownMachineNames = {};
-    for (var li = 0; li < lines.length; li++) {
-        var line = lines[li].trim();
-        if (!line) continue;
-        var parts = line.split('\t');
-        if (parts.length < 4) {
-            ignoredLines++;
-            continue;
-        }
-        var datoStr = parts[0].trim();
-        var maskineStr = parts[1].trim();
-        var kodeStr = parts[2].trim();
-        var tidStr = parts[3].trim().replace(",", ".");
-        var dato = parseDato(datoStr);
-        var tid = parseFloat(tidStr);
-        var kodeMatch = kodeStr.match(/^(\d+)/);
-        var kode = kodeMatch ? parseInt(kodeMatch[1], 10) : null;
-        if (!dato || isNaN(tid) || kode === null || kode < 1 || kode > 16) {
-            ignoredLines++;
-            continue;
-        }
-        var matchedMaskine = findMaskineMatch(maskineStr);
-        if (MASKINE_ORDER.indexOf(matchedMaskine) === -1 && normalizeName(matchedMaskine) === normalizeName(maskineStr)) {
-            unknownMachineNames[maskineStr] = true;
-        }
-        entries.push({ dato: dato, maskine: matchedMaskine, kode: kode, tid: tid });
-    }
-    return {
-        entries: entries,
-        ignoredLines: ignoredLines,
-        unknownMachineNames: Object.keys(unknownMachineNames)
-    };
-}
-
-function toggleDateRange() {
-    var enabled = document.getElementById("enableDateRange").checked;
-    document.getElementById("dateRangeRow").style.display = enabled ? "flex" : "none";
-    renderResults();
-}
-
-function handleMonthFilterChange() {
-    var monthValue = document.getElementById("filterMonth").value;
-    if (monthValue) {
-        document.getElementById("enableDateRange").checked = false;
-        document.getElementById("dateRangeRow").style.display = "none";
-    }
-    renderResults();
-}
-
-function getFilteredEntries() {
-    var entries = globalEntries.slice();
-    var selectedMachine = document.getElementById("filterMachine").value;
-    var selectedMonth = document.getElementById("filterMonth").value;
-    var selectedCodes = getSelectedStopkoder();
-    var dateRangeEnabled = document.getElementById("enableDateRange").checked;
-    var dateFrom = parseInputDateValue(document.getElementById("dateFrom").value);
-    var dateTo = parseInputDateValue(document.getElementById("dateTo").value);
-
-    if (selectedMachine) {
-        entries = entries.filter(function(e) { return e.maskine === selectedMachine; });
-    }
-    if (selectedMonth) {
-        entries = entries.filter(function(e) { return getMonthKey(e.dato) === selectedMonth; });
-    }
-    if (selectedCodes.length) {
-        entries = entries.filter(function(e) { return selectedCodes.indexOf(e.kode) !== -1; });
-    } else {
-        entries = [];
-    }
-    if (dateRangeEnabled) {
-        if (dateFrom) {
-            entries = entries.filter(function(e) { return e.dato >= dateFrom; });
-        }
-        if (dateTo) {
-            var end = new Date(dateTo.getFullYear(), dateTo.getMonth(), dateTo.getDate(), 23, 59, 59, 999);
-            entries = entries.filter(function(e) { return e.dato <= end; });
-        }
-    }
-    return entries;
-}
-
-function sortMachineList(list) {
-    return list.sort(function(a, b) {
-        var ia = MASKINE_ORDER.indexOf(a);
-        var ib = MASKINE_ORDER.indexOf(b);
-        if (ia === -1 && ib === -1) return a.localeCompare(b, 'da');
-        if (ia === -1) return 1;
-        if (ib === -1) return -1;
-        return ia - ib;
-    });
-}
-
-function buildPeriodBlocks(machineEntries, mode) {
-    var blocks = [];
-    if (mode === "maaned") {
-        var monthMap = {};
-        for (var i = 0; i < machineEntries.length; i++) {
-            var mk = getMonthKey(machineEntries[i].dato);
-            if (!monthMap[mk]) monthMap[mk] = [];
-            monthMap[mk].push(machineEntries[i]);
-        }
-        var monthKeys = Object.keys(monthMap).sort();
-        for (var m = 0; m < monthKeys.length; m++) {
-            blocks.push({
-                type: "month",
-                key: monthKeys[m],
-                title: getMonthLabel(monthKeys[m]),
-                rows: aggregateCodes(monthMap[monthKeys[m]])
-            });
-        }
-    } else if (mode === "uge") {
-        var weekMap = {};
-        for (var j = 0; j < machineEntries.length; j++) {
-            var w = getWeekNumber(machineEntries[j].dato);
-            var wk = w.year + "-W" + String(w.week).padStart(2, "0");
-            if (!weekMap[wk]) weekMap[wk] = { info: w, entries: [] };
-            weekMap[wk].entries.push(machineEntries[j]);
-        }
-        var weekKeys = Object.keys(weekMap).sort();
-        for (var wi = 0; wi < weekKeys.length; wi++) {
-            blocks.push({
-                type: "week",
-                key: weekKeys[wi],
-                title: getWeekLabel(weekMap[weekKeys[wi]].info),
-                rows: aggregateCodes(weekMap[weekKeys[wi]].entries)
-            });
-        }
-    } else {
-        var comboMonthMap = {};
-        for (var x = 0; x < machineEntries.length; x++) {
-            var cmk = getMonthKey(machineEntries[x].dato);
-            if (!comboMonthMap[cmk]) comboMonthMap[cmk] = [];
-            comboMonthMap[cmk].push(machineEntries[x]);
-        }
-        var comboMonthKeys = Object.keys(comboMonthMap).sort();
-        for (var ci = 0; ci < comboMonthKeys.length; ci++) {
-            var monthKey = comboMonthKeys[ci];
-            var monthEntries = comboMonthMap[monthKey];
-            blocks.push({
-                type: "month",
-                key: monthKey,
-                title: getMonthLabel(monthKey) + " - Månedstotal",
-                rows: aggregateCodes(monthEntries)
-            });
-
-            var nestedWeekMap = {};
-            for (var y = 0; y < monthEntries.length; y++) {
-                var ww = getWeekNumber(monthEntries[y].dato);
-                var nwk = ww.year + "-W" + String(ww.week).padStart(2, "0");
-                if (!nestedWeekMap[nwk]) nestedWeekMap[nwk] = { info: ww, entries: [] };
-                nestedWeekMap[nwk].entries.push(monthEntries[y]);
-            }
-            var nestedWeekKeys = Object.keys(nestedWeekMap).sort();
-            for (var n = 0; n < nestedWeekKeys.length; n++) {
-                blocks.push({
-                    type: "week",
-                    key: nestedWeekKeys[n],
-                    title: getMonthLabel(monthKey) + " - " + getWeekLabel(nestedWeekMap[nestedWeekKeys[n]].info),
-                    rows: aggregateCodes(nestedWeekMap[nestedWeekKeys[n]].entries)
-                });
-            }
-        }
-    }
-    return blocks;
-}
-
-function renderResults() {
-    if (!globalEntries.length) return;
-    var entries = getFilteredEntries();
-    var resultSection = document.getElementById("resultSection");
-    var resultContent = document.getElementById("resultContent");
-    var ignoredInfo = document.getElementById("ignoredInfo");
-    var groupMode = document.getElementById("groupBy").value;
-
-    if (!entries.length) {
-        resultSection.style.display = "block";
-        resultContent.innerHTML = "<div class='summary-box'>Ingen data matcher de valgte filtre.</div>";
-        ignoredInfo.textContent = buildIgnoredInfo();
-        document.getElementById("btnPdf").style.display = "none";
-        return;
-    }
-
-    var machinesMap = {};
-    for (var i = 0; i < entries.length; i++) {
-        if (!machinesMap[entries[i].maskine]) machinesMap[entries[i].maskine] = [];
-        machinesMap[entries[i].maskine].push(entries[i]);
-    }
-    var machines = sortMachineList(Object.keys(machinesMap));
-    var html = "";
-
-    for (var m = 0; m < machines.length; m++) {
-        var machine = machines[m];
-        var machineEntries = machinesMap[machine];
-        var totalMachine = 0;
-        var yearTotals = {};
-        for (var j = 0; j < machineEntries.length; j++) {
-            totalMachine += machineEntries[j].tid;
-            var yk = getYearKey(machineEntries[j].dato);
-            if (!yearTotals[yk]) yearTotals[yk] = 0;
-            yearTotals[yk] += machineEntries[j].tid;
-        }
-
-        html += "<div class='machine-section'>";
-        html += "<h3>" + escapeHtml(machine) + "</h3>";
-        html += "<div class='summary-box'>Samlet stop tid: <strong>" + formatMinutes(totalMachine) + " min</strong></div>";
-
-        var yearKeys = Object.keys(yearTotals).sort();
-        if (yearKeys.length) {
-            html += "<div class='summary-box'><strong>Total pr. år:</strong><br>";
-            for (var yi = 0; yi < yearKeys.length; yi++) {
-                html += escapeHtml(yearKeys[yi]) + ": " + formatMinutes(yearTotals[yearKeys[yi]]) + " min";
-                if (yi < yearKeys.length - 1) html += "<br>";
-            }
-            html += "</div>";
-        }
-
-        var blocks = buildPeriodBlocks(machineEntries, groupMode);
-        for (var b = 0; b < blocks.length; b++) {
-            html += buildTableHtml(blocks[b].rows, blocks[b].title);
-        }
-        html += "</div>";
-    }
-
-    resultContent.innerHTML = html;
-    ignoredInfo.textContent = buildIgnoredInfo();
-    resultSection.style.display = "block";
-    document.getElementById("btnPdf").style.display = "inline-block";
-}
-
-function buildIgnoredInfo() {
-    if (!globalParsedMeta) return "";
-    var txt = "Ignorerede linjer: " + globalParsedMeta.ignoredLines;
-    if (globalParsedMeta.unknownMachineNames && globalParsedMeta.unknownMachineNames.length) {
-        txt += " | Ukendte maskinnavne: " + globalParsedMeta.unknownMachineNames.join(", ");
-    }
-    return txt;
-}
-
-function beregn() {
-    clearMessages();
-    var raw = document.getElementById("dataInput").value.trim();
-    if (!raw) {
-        showError("Indsæt data før du beregner.");
-        return;
-    }
-
-    var parsed = parseData(raw);
-    if (!parsed.entries.length) {
-        showError("Ingen gyldige linjer blev fundet. Tjek formatet: Dato[TAB]Maskine[TAB]Stopkode[TAB]Tid.");
-        return;
-    }
-
-    globalEntries = parsed.entries;
-    globalParsedMeta = parsed;
-    populateFilters(globalEntries);
-    renderResults();
-    showSuccess("Data indlæst: " + parsed.entries.length + " gyldige linjer.");
-}
-
-function ryd() {
-    document.getElementById("dataInput").value = "";
-    document.getElementById("groupBy").value = "uge_maaned";
-    document.getElementById("filterMachine").innerHTML = '<option value="">Alle maskiner</option>';
-    document.getElementById("filterMonth").innerHTML = '<option value="">Alle måneder</option>';
-    document.getElementById("enableDateRange").checked = false;
-    document.getElementById("dateRangeRow").style.display = "none";
-    document.getElementById("dateFrom").value = "";
-    document.getElementById("dateTo").value = "";
-    document.getElementById("stopkodeFilterSection").style.display = "none";
-    document.getElementById("pdfFilterSection").style.display = "none";
-    document.getElementById("resultSection").style.display = "none";
-    document.getElementById("resultContent").innerHTML = "";
-    document.getElementById("ignoredInfo").textContent = "";
-    document.getElementById("btnPdf").style.display = "none";
-    globalEntries = [];
-    globalParsedMeta = null;
-    clearMessages();
-}
-
-function downloadPdf() {
-    if (!globalEntries.length) {
-        showError("Der er ingen data at eksportere.");
-        return;
-    }
-
-    var selectedPdfMachines = getSelectedPdfMachines();
-    if (!selectedPdfMachines.length) {
-        showError("Vælg mindst én maskine til PDF.");
-        return;
-    }
-
-    var entries = getFilteredEntries().filter(function(e) {
-        return selectedPdfMachines.indexOf(e.maskine) !== -1;
-    });
-
-    if (!entries.length) {
-        showError("Ingen data matcher de valgte filtre til PDF.");
-        return;
-    }
-
-    var jsPDF = window.jspdf.jsPDF;
-    var doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-    var pageWidth = doc.internal.pageSize.getWidth();
-
-    doc.setFillColor(22, 33, 62);
-    doc.rect(0, 0, pageWidth, 297, "F");
-    doc.setTextColor(210, 0, 20);
-    doc.setFontSize(24);
-    doc.text("Stop Kode Beregner V3.0", 105, 30, { align: "center" });
-    doc.setTextColor(32, 134, 132);
-    doc.setFontSize(14);
-    doc.text("Rapport over stop tid pr. maskine", 105, 42, { align: "center" });
-    doc.setTextColor(220, 220, 220);
-    doc.setFontSize(11);
-
-    var periodText = "Periode: Alle data";
-    var selectedMonth = document.getElementById("filterMonth").value;
-    if (selectedMonth) periodText = "Periode: " + getMonthLabel(selectedMonth);
-    if (document.getElementById("enableDateRange").checked) {
-        var df = document.getElementById("dateFrom").value || "...";
-        var dt = document.getElementById("dateTo").value || "...";
-        periodText = "Periode: " + df + " til " + dt;
-    }
-
-    doc.text(periodText, 20, 60);
-    doc.text("Maskiner i rapport: " + selectedPdfMachines.join(", "), 20, 68, { maxWidth: 170 });
-    doc.text("Genereret: " + new Date().toLocaleString("da-DK"), 20, 80);
-    doc.text("Gruppering: " + document.getElementById("groupBy").options[document.getElementById("groupBy").selectedIndex].text, 20, 88);
-
-    var machineMap = {};
-    for (var i = 0; i < entries.length; i++) {
-        if (!machineMap[entries[i].maskine]) machineMap[entries[i].maskine] = [];
-        machineMap[entries[i].maskine].push(entries[i]);
-    }
-
-    var machines = sortMachineList(Object.keys(machineMap));
-    var firstDataPage = true;
-
-    for (var m = 0; m < machines.length; m++) {
-        var machine = machines[m];
-        var machineEntries = machineMap[machine];
-
-        var monthMap = {};
-        for (var j = 0; j < machineEntries.length; j++) {
-            var mk = getMonthKey(machineEntries[j].dato);
-            if (!monthMap[mk]) monthMap[mk] = [];
-            monthMap[mk].push(machineEntries[j]);
-        }
-        var monthKeys = Object.keys(monthMap).sort();
-
-        for (var mo = 0; mo < monthKeys.length; mo++) {
-            if (firstDataPage) {
-                doc.addPage();
-                firstDataPage = false;
-            } else {
-                doc.addPage();
-            }
-
-            var monthKey = monthKeys[mo];
-            var monthEntries = monthMap[monthKey];
-            var yTotal = 0;
-            for (var tt = 0; tt < machineEntries.length; tt++) yTotal += machineEntries[tt].tid;
-
-            doc.setFillColor(17, 26, 51);
-            doc.rect(0, 0, pageWidth, 297, "F");
-            doc.setTextColor(210, 0, 20);
-            doc.setFontSize(18);
-            doc.text(machine, 14, 18);
-            doc.setTextColor(32, 134, 132);
-            doc.setFontSize(12);
-            doc.text(getMonthLabel(monthKey), 14, 26);
-            doc.setTextColor(230, 230, 230);
-            doc.setFontSize(10);
-            doc.text("Årstotal for maskine: " + formatMinutes(yTotal) + " min", 14, 34);
-
-            var monthRows = aggregateCodes(monthEntries).map(function(r) {
-                return [String(r.kode), r.navn, formatMinutes(r.tid)];
-            });
-
-            doc.autoTable({
-                startY: 40,
-                head: [["Stopkode", "Navn", "Stop tid (min)"]],
-                body: monthRows,
-                foot: [["", "Månedstotal", formatMinutes(monthEntries.reduce(function(s, e){ return s + e.tid; }, 0))]],
-                theme: "grid",
-                styles: { fillColor: [15,15,35], textColor: [230,230,230], lineColor: [32,134,132] },
-                headStyles: { fillColor: [15,52,96], textColor: [32,134,132] },
-                footStyles: { fillColor: [15,52,96], textColor: [210,0,20] },
-                alternateRowStyles: { fillColor: [22,33,62] },
-                didParseCell: function(data) {
-                    if (data.section === "body") {
-                        if (data.row.index === 0) data.cell.styles.fillColor = [70, 10, 20];
-                        if (data.row.index === 1) data.cell.styles.fillColor = [70, 50, 10];
-                        if (data.row.index === 2) data.cell.styles.fillColor = [20, 70, 70];
-                    }
-                }
-            });
-
-            if (document.getElementById("groupBy").value !== "maaned") {
-                var weekMap = {};
-                for (var w = 0; w < monthEntries.length; w++) {
-                    var wi = getWeekNumber(monthEntries[w].dato);
-                    var wk = wi.year + "-W" + String(wi.week).padStart(2, "0");
-                    if (!weekMap[wk]) weekMap[wk] = { info: wi, entries: [] };
-                    weekMap[wk].entries.push(monthEntries[w]);
-                }
-                var weekKeys = Object.keys(weekMap).sort();
-                var startY = doc.lastAutoTable.finalY + 10;
-
-                for (var k = 0; k < weekKeys.length; k++) {
-                    var wkObj = weekMap[weekKeys[k]];
-                    doc.setTextColor(240, 165, 0);
-                    doc.text(getWeekLabel(wkObj.info), 14, startY);
-                    var wkRows = aggregateCodes(wkObj.entries).map(function(r) {
-                        return [String(r.kode), r.navn, formatMinutes(r.tid)];
-                    });
-                    doc.autoTable({
-                        startY: startY + 3,
-                        head: [["Stopkode", "Navn", "Stop tid (min)"]],
-                        body: wkRows,
-                        theme: "grid",
-                        styles: { fontSize: 8, fillColor: [15,15,35], textColor: [230,230,230], lineColor: [32,134,132] },
-                        headStyles: { fillColor: [15,52,96], textColor: [32,134,132] },
-                        alternateRowStyles: { fillColor: [22,33,62] },
-                        didParseCell: function(data) {
-                            if (data.section === "body") {
-                                if (data.row.index === 0) data.cell.styles.fillColor = [70, 10, 20];
-                                if (data.row.index === 1) data.cell.styles.fillColor = [70, 50, 10];
-                                if (data.row.index === 2) data.cell.styles.fillColor = [20, 70, 70];
-                            }
-                        }
-                    });
-                    startY = doc.lastAutoTable.finalY + 8;
-                    if (startY > 250 && k < weekKeys.length - 1) {
-                        doc.addPage();
-                        doc.setFillColor(17, 26, 51);
-                        doc.rect(0, 0, pageWidth, 297, "F");
-                        startY = 20;
-                    }
-                }
-            }
-        }
-    }
-
-    doc.save("stopkodeberegner_v3_0.pdf");
-}
-</script>
-</body>
-</html>
