@@ -1,11 +1,11 @@
-<!-- Kontrolleret version V4.3 -->
-<!-- Stopkodeberegner - Version 4.0 -->
+<!-- Kontrolleret version V4.6 -->
+<!-- Stopkodeberegner - Version 4.6 -->
 <!DOCTYPE html>
 <html lang="da">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stopkodeberegner - Version 4.0</title>
+    <title>Stopkodeberegner - Version 4.6</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 // --- V3.9 compatibility fixes ---
@@ -57,6 +57,13 @@ document.addEventListener('DOMContentLoaded', function(){
             margin-bottom: 10px;
             font-size: 28px;
         }
+        .title-logo {
+            display: block;
+            max-width: 100%;
+            width: 420px;
+            height: auto;
+            margin: 0 auto;
+        }
         .subtitle {
             text-align: center;
             color: #888;
@@ -80,215 +87,222 @@ document.addEventListener('DOMContentLoaded', function(){
         .input-section label, .filter-section label {
             display: block;
             margin-bottom: 8px;
-            color: #D20014;
-            font-weight: 600;
+            font-weight: bold;
+            color: #208684;
+            font-size: 16px;
+        }
+        .input-section p {
+            margin-bottom: 12px;
+            color: #999;
+            font-size: 13px;
         }
         textarea {
             width: 100%;
-            min-height: 220px;
-            background: #0f3460;
-            color: #fff;
-            border: 1px solid #533483;
+            height: 220px;
+            background: #0f0f23;
+            color: #e0e0e0;
+            border: 1px solid #333;
             border-radius: 8px;
             padding: 12px;
-            font-family: monospace;
+            font-family: 'Consolas', 'Courier New', monospace;
             font-size: 13px;
             resize: vertical;
         }
-        textarea:focus, select:focus, input:focus {
-            outline: none;
-            border-color: #D20014;
-            box-shadow: 0 0 0 2px rgba(210,0,20,0.2);
-        }
-        .controls-row {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
+        textarea:focus, select:focus, input:focus { outline: none; border-color: #208684; }
+        .controls-row, .date-range-row {
+            display: flex;
             gap: 15px;
+            flex-wrap: wrap;
             margin-top: 15px;
             align-items: end;
         }
         .control-group {
             display: flex;
             flex-direction: column;
+            min-width: 220px;
+            flex: 1;
         }
-        select, input[type="date"] {
-            background: #0f3460;
-            color: #fff;
-            border: 1px solid #533483;
-            border-radius: 8px;
-            padding: 10px;
+        .control-group select, .control-group input[type="date"], .control-group input[type="text"] {
+            background: #0f0f23;
+            color: #e0e0e0;
+            border: 1px solid #333;
+            border-radius: 6px;
+            padding: 10px 12px;
             font-size: 14px;
         }
         .checkbox-inline {
             display: flex;
             align-items: center;
             gap: 8px;
-            margin-top: 10px;
-            color: #ddd;
+            min-height: 42px;
+            background: #0f0f23;
+            border: 1px solid #333;
+            border-radius: 6px;
+            padding: 10px 12px;
+            color: #e0e0e0;
+            font-size: 14px;
         }
-        .checkbox-inline input[type="checkbox"] {
-            transform: scale(1.2);
-        }
-        .date-range-row {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
-            margin-top: 15px;
-        }
-        .button-row {
+        .checkbox-inline input { transform: scale(1.1); }
+        .buttons {
+            margin-top: 20px;
             display: flex;
-            gap: 12px;
-            margin-top: 18px;
+            gap: 10px;
             flex-wrap: wrap;
         }
-        button {
-            background: linear-gradient(135deg, #D20014, #9F000F);
-            color: white;
+        .btn {
+            padding: 12px 24px;
             border: none;
             border-radius: 8px;
-            padding: 12px 18px;
-            font-size: 14px;
-            font-weight: 600;
+            font-size: 15px;
+            font-weight: bold;
             cursor: pointer;
-            transition: 0.2s ease;
+            transition: all 0.2s;
         }
-        button:hover {
-            transform: translateY(-1px);
-            opacity: 0.95;
+        .btn-calc { background: #D20014; color: white; }
+        .btn-calc:hover { background: #9F000F; }
+        .btn-clear { background: #333; color: #ccc; }
+        .btn-clear:hover { background: #555; }
+        .btn-pdf { background: #208684; color: white; }
+        .btn-pdf:hover { background: #186462; }
+        .btn-small { padding: 8px 12px; font-size: 13px; }
+        .result-section { display: none; }
+        .result-section h2 {
+            color: #208684;
+            margin-bottom: 15px;
+            font-size: 22px;
         }
-        button.secondary {
-            background: linear-gradient(135deg, #208684, #176665);
-        }
-        button.gray {
-            background: linear-gradient(135deg, #656565, #4d4d4d);
-        }
-        .error {
-            margin-top: 12px;
-            color: #ff8b8b;
-            font-size: 13px;
-            white-space: pre-line;
-        }
-        .success {
-            margin-top: 12px;
-            color: #8bffb0;
-            font-size: 13px;
-        }
-        .pdf-machine-box {
-            margin-top: 18px;
-            background: #0f3460;
-            border: 1px solid #533483;
-            border-radius: 10px;
-            padding: 15px;
-        }
-        .pdf-machine-title {
+        .result-section h3 {
             color: #D20014;
-            font-weight: 700;
-            margin-bottom: 12px;
+            margin: 25px 0 10px 0;
+            font-size: 18px;
+            border-bottom: 1px solid #0f3460;
+            padding-bottom: 6px;
         }
-        .pdf-machine-list {
+        .result-section h4 {
+            color: #f0a500;
+            margin: 20px 0 8px 0;
+            font-size: 15px;
+        }
+        .machine-section {
+            margin-bottom: 35px;
+            padding: 15px;
+            border: 1px solid #243b63;
+            border-radius: 10px;
+            background: #111a33;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 18px;
+        }
+        th {
+            background: #0f3460;
+            color: #208684;
+            padding: 12px 15px;
+            text-align: left;
+            font-size: 14px;
+            border-bottom: 2px solid #208684;
+        }
+        td {
+            padding: 10px 15px;
+            border-bottom: 1px solid #1a1a3e;
+            font-size: 14px;
+        }
+        tr:hover { background: #1a1a3e; }
+        .total-row {
+            background: #0f3460 !important;
+            font-weight: bold;
+            color: #D20014;
+        }
+        .total-row td {
+            border-top: 2px solid #208684;
+            font-size: 15px;
+        }
+        .summary-box {
+            background: #10182d;
+            border: 1px solid #20385f;
+            border-radius: 8px;
+            padding: 12px 15px;
+            margin-bottom: 15px;
+            color: #ccc;
+        }
+        .ignored-info {
+            margin-top: 15px;
+            padding: 10px 15px;
+            background: #1a1a2e;
+            border-radius: 8px;
+            color: #777;
+            font-size: 12px;
+        }
+        .error-msg {
+            color: #ff9fa8;
+            background: #2a0a0a;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 10px;
+            display: none;
+        }
+        .success-msg {
+            color: #9ff3d1;
+            background: #0f2a22;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 10px;
+            display: none;
+        }
+        .checkbox-list {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 8px;
+            margin-top: 10px;
+            background: #0f0f23;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #333;
+            max-height: 260px;
+            overflow-y: auto;
         }
-        .pdf-machine-item {
+        .checkbox-list label {
             display: flex;
             align-items: center;
             gap: 8px;
             color: #ddd;
             font-size: 14px;
+            margin: 0;
+            font-weight: normal;
         }
-        .machine-block {
-            margin-top: 22px;
-            border-top: 2px solid #0f3460;
-            padding-top: 18px;
-        }
-        .machine-title {
-            color: #D20014;
-            margin-bottom: 14px;
-            font-size: 20px;
-        }
-        .summary-line {
-            color: #ccc;
-            margin-bottom: 14px;
-            font-size: 13px;
-        }
-        .cards-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 15px;
-        }
-        .section-card {
-            background: #0f3460;
-            border: 1px solid #533483;
-            border-radius: 10px;
-            padding: 14px;
-        }
-        .section-card h3, .section-card h4 {
-            color: #fff;
-            margin-bottom: 10px;
-        }
-        .table-wrap {
-            overflow-x: auto;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 13px;
-        }
-        th, td {
-            border: 1px solid #2f4f7f;
-            padding: 8px 10px;
-            text-align: left;
-        }
-        th {
-            background: #1b4f72;
-            color: #fff;
-        }
-        tr:nth-child(even) td {
-            background: rgba(255,255,255,0.03);
-        }
-        .row-top-1 td { background: rgba(210,0,20,0.20) !important; }
-        .row-top-2 td { background: rgba(255,165,0,0.20) !important; }
-        .row-top-3 td { background: rgba(32,134,132,0.20) !important; }
-        .total-row td {
-            font-weight: 700;
-            color: #fff;
-            background: rgba(255,255,255,0.06) !important;
-        }
-        .year-total-section {
-            border: 1px solid #D20014;
-            box-shadow: 0 0 0 1px rgba(210,0,20,0.25);
-        }
-        .year-total-section h3 {
-            color: #ffb3bb;
-        }
-        .legend {
+        .top-actions {
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
-            margin-bottom: 15px;
-            color: #ccc;
+            margin-bottom: 10px;
+        }
+        .muted {
+            color: #888;
             font-size: 12px;
+            margin-top: 8px;
+        }
+        .row-top-1 { background: rgba(210, 0, 20, 0.22) !important; }
+        .row-top-2 { background: rgba(240, 165, 0, 0.18) !important; }
+        .row-top-3 { background: rgba(32, 134, 132, 0.18) !important; }
+        .legend {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin: 8px 0 14px 0;
+            font-size: 12px;
+            color: #bbb;
         }
         .legend span {
             display: inline-flex;
             align-items: center;
             gap: 6px;
         }
-        .legend i {
-            display: inline-block;
-            width: 12px;
-            height: 12px;
+        .legend-box {
+            width: 14px;
+            height: 14px;
             border-radius: 3px;
-        }
-        .legend .gold { background: rgba(210,0,20,0.55); }
-        .legend .silver { background: rgba(255,165,0,0.55); }
-        .legend .bronze { background: rgba(32,134,132,0.55); }
-        .footer-note {
-            text-align: center;
-            color: #777;
-            margin-top: 14px;
-            font-size: 12px;
+            display: inline-block;
         }
         .hidden { display: none !important; }
     
@@ -320,9 +334,9 @@ document.addEventListener('DOMContentLoaded', function(){
     
     
 <div class="container">
-    <h1>⏱️ Stop Kode Beregner</h1>
+    <h1><img src="LOGO.png" alt="Stopkodeberegner logo" class="title-logo"></h1>
     <p class="subtitle">Analyse af stop tid pr. maskine, uge, måned og år</p>
-    <p class="version">Version 4.0</p>
+    <p class="version">Version 4.6</p>
 
     <div class="input-section">
         <label for="dataInput">📋 Indsæt data fra Excel her:</label>
@@ -376,32 +390,45 @@ document.addEventListener('DOMContentLoaded', function(){
             </div>
         </div>
 
-        <div class="button-row">
-            <button onclick="analyzeData()">Analyser data</button>
-            <button class="secondary" onclick="downloadPdf()">Download PDF</button>
-            <button class="gray" onclick="clearAll()">Ryd alt</button>
+        <div class="buttons">
+            <button class="btn btn-calc" onclick="beregn()">⚡ Beregn</button>
+            <button class="btn btn-clear" onclick="ryd()">🗑️ Ryd</button>
+            <button class="btn btn-pdf" id="btnPdf" onclick="downloadPdf()" style="display:none;">📄 Download PDF</button>
         </div>
 
-        <div id="statusMessage"></div>
-
-        <div class="pdf-machine-box">
-            <div class="pdf-machine-title">🖨️ Vælg maskiner til PDF</div>
-            <div style="display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap;">
-                <button type="button" class="secondary" onclick="selectAllPdfMachines()">Vælg alle</button>
-                <button type="button" class="gray" onclick="deselectAllPdfMachines()">Fravælg alle</button>
-            </div>
-            <div class="pdf-machine-list" id="pdfMachineList"></div>
-        </div>
+        <div class="error-msg" id="errorMsg"></div>
+        <div class="success-msg" id="successMsg"></div>
     </div>
 
-    <div class="result-section hidden-on-start" id="results">
-        <div class="legend">
-            <span><i class="gold"></i> Top 1</span>
-            <span><i class="silver"></i> Top 2</span>
-            <span><i class="bronze"></i> Top 3</span>
+    <div class="filter-section" id="stopkodeFilterSection" style="display:none;">
+        <label>🧩 Vælg specifikke stopkoder der skal med i analysen</label>
+        <div class="top-actions">
+            <button class="btn btn-small btn-clear" type="button" onclick="markAllStopkoder(true)">Vælg alle</button>
+            <button class="btn btn-small btn-clear" type="button" onclick="markAllStopkoder(false)">Fjern alle</button>
         </div>
-        <div id="resultsContent"></div>
-        <p class="footer-note">PDF indeholder samme filtrering som visningen samt valgte maskiner.</p>
+        <div class="checkbox-list" id="stopkodeList"></div>
+        <div class="muted">Kun valgte stopkoder medtages i analysen, totaler og PDF.</div>
+    </div>
+
+    <div class="filter-section" id="pdfFilterSection" style="display:none;">
+        <label>📑 Vælg hvilke maskiner der skal med i PDF</label>
+        <div class="top-actions">
+            <button class="btn btn-small btn-clear" type="button" onclick="markAllPdfMachines(true)">Vælg alle</button>
+            <button class="btn btn-small btn-clear" type="button" onclick="markAllPdfMachines(false)">Fjern alle</button>
+        </div>
+        <div class="checkbox-list" id="pdfMachineList"></div>
+        <div class="muted">Kun valgte maskiner eksporteres til PDF.</div>
+    </div>
+
+    <div class="result-section" id="resultSection" style="display:none;">
+        <h2>📊 Resultat</h2>
+        <div class="legend">
+            <span><i class="legend-box" style="background: rgba(210,0,20,0.22);"></i> Største stopårsag</span>
+            <span><i class="legend-box" style="background: rgba(240,165,0,0.18);"></i> Næststørste stopårsag</span>
+            <span><i class="legend-box" style="background: rgba(32,134,132,0.18);"></i> Tredjestørste stopårsag</span>
+        </div>
+        <div id="resultContent"></div>
+        <div class="ignored-info" id="ignoredInfo"></div>
     </div>
 </div>
 
@@ -448,33 +475,52 @@ function findMaskineMatch(inputName) {
     for (var i = 0; i < MASKINE_ORDER.length; i++) {
         if (normalizeName(MASKINE_ORDER[i]) === norm) return MASKINE_ORDER[i];
     }
+    for (var j = 0; j < MASKINE_ORDER.length; j++) {
+        var orderNorm = normalizeName(MASKINE_ORDER[j]);
+        if (orderNorm.indexOf(norm) !== -1 || norm.indexOf(orderNorm) !== -1) return MASKINE_ORDER[j];
+    }
     return inputName.trim();
 }
 
-function parseDateDMY(dateStr) {
-    var m = String(dateStr).trim().match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
-    if (!m) return null;
-    var d = parseInt(m[1], 10);
-    var mo = parseInt(m[2], 10) - 1;
-    var y = parseInt(m[3], 10);
-    var dt = new Date(y, mo, d);
-    if (dt.getFullYear() !== y || dt.getMonth() !== mo || dt.getDate() !== d) return null;
+function parseDato(str) {
+    var parts = str.trim().split('-');
+    if (parts.length !== 3) return null;
+    var d = parseInt(parts[0], 10);
+    var m = parseInt(parts[1], 10);
+    var y = parseInt(parts[2], 10);
+    if (isNaN(d) || isNaN(m) || isNaN(y)) return null;
+    var dt = new Date(y, m - 1, d);
+    if (isNaN(dt.getTime())) return null;
+    if (dt.getDate() !== d || dt.getMonth() !== m - 1 || dt.getFullYear() !== y) return null;
     return dt;
 }
 
-function getISODateString(date) {
-    var y = date.getFullYear();
-    var m = String(date.getMonth() + 1).padStart(2, "0");
-    var d = String(date.getDate()).padStart(2, "0");
-    return y + "-" + m + "-" + d;
+function parseInputDateValue(value) {
+    if (!value) return null;
+    var parts = value.split("-");
+    if (parts.length !== 3) return null;
+    var y = parseInt(parts[0], 10);
+    var m = parseInt(parts[1], 10);
+    var d = parseInt(parts[2], 10);
+    if (isNaN(y) || isNaN(m) || isNaN(d)) return null;
+    return new Date(y, m - 1, d);
 }
 
-function getYearKey(date) {
-    return String(date.getFullYear());
+function getWeekNumber(date) {
+    var d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    var dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    var weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+    return { year: d.getUTCFullYear(), week: weekNo };
 }
 
 function getMonthKey(date) {
     return date.getFullYear() + "-" + String(date.getMonth() + 1).padStart(2, "0");
+}
+
+function getYearKey(date) {
+    return String(date.getFullYear());
 }
 
 function getMonthLabel(monthKey) {
@@ -567,83 +613,771 @@ function buildTableHtml(rows, title) {
     return html;
 }
 
-function getWeekNumber(date) {
-    var d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-    var dayNum = d.getUTCDay() || 7;
-    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-    var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-    var weekNum = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-    return { week: weekNum, year: d.getUTCFullYear() };
+function showError(msg) {
+    var el = document.getElementById("errorMsg");
+    el.textContent = msg;
+    el.style.display = "block";
+    document.getElementById("successMsg").style.display = "none";
 }
 
-function sortMachineList(arr) {
-    return arr.slice().sort(function(a, b) {
+function showSuccess(msg) {
+    var el = document.getElementById("successMsg");
+    el.textContent = msg;
+    el.style.display = "block";
+    document.getElementById("errorMsg").style.display = "none";
+}
+
+function clearMessages() {
+    document.getElementById("errorMsg").style.display = "none";
+    document.getElementById("successMsg").style.display = "none";
+}
+
+
+
+
+function populateFilters(entries) {
+    var machineSelect = document.getElementById("filterMachine");
+    var monthSelect = document.getElementById("filterMonth");
+    var currentMachine = machineSelect.value;
+    var currentMonth = monthSelect.value;
+    var machines = {};
+    var months = {};
+    for (var i = 0; i < entries.length; i++) {
+        machines[entries[i].maskine] = true;
+        months[getMonthKey(entries[i].dato)] = true;
+    }
+    var machines = Object.keys(machines).sort(function(a, b) {
         var ia = MASKINE_ORDER.indexOf(a);
         var ib = MASKINE_ORDER.indexOf(b);
-        if (ia === -1 && ib === -1) return a.localeCompare(b, "da");
+        if (ia === -1 && ib === -1) return a.localeCompare(b, 'da');
+        if (ia === -1) return 1;
+        if (ib === -1) return -1;
+        return ia - ib;
+    });
+    var monthList = Object.keys(months).sort();
+
+    machineSelect.innerHTML = '<option value="">Alle maskiner</option>';
+    for (var m = 0; m < machines.length; m++) {
+        machineSelect.innerHTML += '<option value="' + escapeHtml(machines[m]) + '">' + escapeHtml(machines[m]) + '</option>';
+    }
+
+    monthSelect.innerHTML = '<option value="">Alle måneder</option>';
+    for (var mo = 0; mo < monthList.length; mo++) {
+        monthSelect.innerHTML += '<option value="' + monthList[mo] + '">' + getMonthLabel(monthList[mo]) + '</option>';
+    }
+
+    if (machines.indexOf(currentMachine) !== -1) machineSelect.value = currentMachine;
+    if (monthList.indexOf(currentMonth) !== -1) monthSelect.value = currentMonth;
+
+    buildPdfMachineList(machines);
+    buildStopkodeFilter();
+}
+
+function buildPdfMachineList(machines) {
+    var container = document.getElementById("pdfMachineList");
+    var section = document.getElementById("pdfFilterSection");
+    var currentSelected = getSelectedPdfMachines();
+    var useCurrent = currentSelected.length > 0;
+    container.innerHTML = "";
+    if (!machines.length) {
+        section.style.display = "none";
+        return;
+    }
+    for (var i = 0; i < machines.length; i++) {
+        var machine = machines[i];
+        var checked = !useCurrent || currentSelected.indexOf(machine) !== -1;
+        container.innerHTML += '<label><input type="checkbox" class="pdf-machine-check" value="' + escapeHtml(machine) + '"' + (checked ? ' checked' : '') + '> ' + escapeHtml(machine) + '</label>';
+    }
+    section.style.display = "block";
+}
+
+function buildStopkodeFilter() {
+    var container = document.getElementById("stopkodeList");
+    var section = document.getElementById("stopkodeFilterSection");
+    var currentSelected = getSelectedStopkoder();
+    var useCurrent = currentSelected.length > 0;
+    container.innerHTML = "";
+    for (var k = 1; k <= 16; k++) {
+        var checked = !useCurrent || currentSelected.indexOf(k) !== -1;
+        container.innerHTML += '<label><input type="checkbox" class="stopkode-check" value="' + k + '"' + (checked ? ' checked' : '') + ' onchange="renderResults()"> ' + k + ': ' + escapeHtml(STOPKODER[k]) + '</label>';
+    }
+    section.style.display = "block";
+}
+
+function markAllPdfMachines(state) {
+    var checks = document.querySelectorAll(".pdf-machine-check");
+    for (var i = 0; i < checks.length; i++) checks[i].checked = state;
+}
+
+function markAllStopkoder(state) {
+    var checks = document.querySelectorAll(".stopkode-check");
+    for (var i = 0; i < checks.length; i++) checks[i].checked = state;
+    renderResults();
+}
+
+function getSelectedPdfMachines() {
+    var checks = document.querySelectorAll(".pdf-machine-check:checked");
+    var selected = [];
+    for (var i = 0; i < checks.length; i++) selected.push(checks[i].value);
+    return selected;
+}
+
+function getSelectedStopkoder() {
+    var checks = document.querySelectorAll(".stopkode-check:checked");
+    var selected = [];
+    for (var i = 0; i < checks.length; i++) selected.push(parseInt(checks[i].value, 10));
+    return selected;
+}
+
+function parseData(raw) {
+    var lines = raw.split(/\r?\n/);
+    var entries = [];
+    var ignoredLines = 0;
+    var unknownMachineNames = {};
+    for (var li = 0; li < lines.length; li++) {
+        var line = lines[li].trim();
+        if (!line) continue;
+        var parts = line.split('\t');
+        if (parts.length < 4) {
+            ignoredLines++;
+            continue;
+        }
+        var datoStr = parts[0].trim();
+        var maskineStr = parts[1].trim();
+        var kodeStr = parts[2].trim();
+        var tidStr = parts[3].trim().replace(",", ".");
+        var dato = parseDato(datoStr);
+        var tid = parseFloat(tidStr);
+        var kodeMatch = kodeStr.match(/^(\d+)/);
+        var kode = kodeMatch ? parseInt(kodeMatch[1], 10) : null;
+        if (!dato || isNaN(tid) || kode === null || kode < 1 || kode > 16) {
+            ignoredLines++;
+            continue;
+        }
+        var matchedMaskine = findMaskineMatch(maskineStr);
+        if (MASKINE_ORDER.indexOf(matchedMaskine) === -1 && normalizeName(matchedMaskine) === normalizeName(maskineStr)) {
+            unknownMachineNames[maskineStr] = true;
+        }
+        entries.push({ dato: dato, maskine: matchedMaskine, kode: kode, tid: tid });
+    }
+    return {
+        entries: entries,
+        ignoredLines: ignoredLines,
+        unknownMachineNames: Object.keys(unknownMachineNames)
+    };
+}
+
+function toggleDateRange() {
+    var enabled = document.getElementById("enableDateRange").checked;
+    document.getElementById("dateRangeRow").style.display = enabled ? "flex" : "none";
+    renderResults();
+}
+
+function handleMonthFilterChange() {
+    var monthValue = document.getElementById("filterMonth").value;
+    if (monthValue) {
+        document.getElementById("enableDateRange").checked = false;
+        document.getElementById("dateRangeRow").style.display = "none";
+    }
+    renderResults();
+}
+
+function getFilteredEntries() {
+    var entries = globalEntries.slice();
+    var selectedMachine = document.getElementById("filterMachine").value;
+    var selectedMonth = document.getElementById("filterMonth").value;
+    var selectedCodes = getSelectedStopkoder();
+    var dateRangeEnabled = document.getElementById("enableDateRange").checked;
+    var dateFrom = parseInputDateValue(document.getElementById("dateFrom").value);
+    var dateTo = parseInputDateValue(document.getElementById("dateTo").value);
+
+    if (selectedMachine) {
+        entries = entries.filter(function(e) { return e.maskine === selectedMachine; });
+    }
+    if (selectedMonth) {
+        entries = entries.filter(function(e) { return getMonthKey(e.dato) === selectedMonth; });
+    }
+    if (selectedCodes.length) {
+        entries = entries.filter(function(e) { return selectedCodes.indexOf(e.kode) !== -1; });
+    } else {
+        entries = [];
+    }
+    if (dateRangeEnabled) {
+        if (dateFrom) {
+            entries = entries.filter(function(e) { return e.dato >= dateFrom; });
+        }
+        if (dateTo) {
+            var end = new Date(dateTo.getFullYear(), dateTo.getMonth(), dateTo.getDate(), 23, 59, 59, 999);
+            entries = entries.filter(function(e) { return e.dato <= end; });
+        }
+    }
+    return entries;
+}
+
+function sortMachineList(list) {
+    return list.sort(function(a, b) {
+        var ia = MASKINE_ORDER.indexOf(a);
+        var ib = MASKINE_ORDER.indexOf(b);
+        if (ia === -1 && ib === -1) return a.localeCompare(b, 'da');
         if (ia === -1) return 1;
         if (ib === -1) return -1;
         return ia - ib;
     });
 }
 
-function showStatus(msg, isError) {
-    var box = document.getElementById("statusMessage");
-    box.className = isError ? "error" : "success";
-    box.textContent = msg || "";
-}
+function buildPeriodBlocks(machineEntries, mode) {
+    var blocks = [];
+    if (mode === "maaned") {
+        var monthMap = {};
+        for (var i = 0; i < machineEntries.length; i++) {
+            var mk = getMonthKey(machineEntries[i].dato);
+            if (!monthMap[mk]) monthMap[mk] = [];
+            monthMap[mk].push(machineEntries[i]);
+        }
+        var monthKeys = Object.keys(monthMap).sort();
+        for (var m = 0; m < monthKeys.length; m++) {
+            blocks.push({
+                type: "month",
+                key: monthKeys[m],
+                title: getMonthLabel(monthKeys[m]),
+                rows: aggregateCodes(monthMap[monthKeys[m]])
+            });
+        }
+    } else if (mode === "uge") {
+        var weekMap = {};
+        for (var j = 0; j < machineEntries.length; j++) {
+            var w = getWeekNumber(machineEntries[j].dato);
+            var wk = w.year + "-W" + String(w.week).padStart(2, "0");
+            if (!weekMap[wk]) weekMap[wk] = { info: w, entries: [] };
+            weekMap[wk].entries.push(machineEntries[j]);
+        }
+        var weekKeys = Object.keys(weekMap).sort();
+        for (var wi = 0; wi < weekKeys.length; wi++) {
+            blocks.push({
+                type: "week",
+                key: weekKeys[wi],
+                title: getWeekLabel(weekMap[weekKeys[wi]].info),
+                rows: aggregateCodes(weekMap[weekKeys[wi]].entries)
+            });
+        }
+    } else {
+        var comboMonthMap = {};
+        for (var x = 0; x < machineEntries.length; x++) {
+            var cmk = getMonthKey(machineEntries[x].dato);
+            if (!comboMonthMap[cmk]) comboMonthMap[cmk] = [];
+            comboMonthMap[cmk].push(machineEntries[x]);
+        }
+        var comboMonthKeys = Object.keys(comboMonthMap).sort();
+        for (var ci = 0; ci < comboMonthKeys.length; ci++) {
+            var monthKey = comboMonthKeys[ci];
+            var monthEntries = comboMonthMap[monthKey];
+            blocks.push({
+                type: "month",
+                key: monthKey,
+                title: getMonthLabel(monthKey) + " - Månedstotal",
+                rows: aggregateCodes(monthEntries)
+            });
 
-function showError(msg) {
-    showStatus(msg, true);
-}
-
-function showSuccess(msg) {
-    showStatus(msg, false);
-}
-
-function clearStatus() {
-    showStatus("", false);
-    document.getElementById("statusMessage").className = "";
-}
-
-function populateMachineFilter(entries) {
-    var select = document.getElementById("filterMachine");
-    var current = select.value;
-    var machines = {};
-    for (var i = 0; i < entries.length; i++) machines[entries[i].maskine] = true;
-    var list = sortMachineList(Object.keys(machines));
-
-    select.innerHTML = '<option value="">Alle maskiner</option>';
-    for (var j = 0; j < list.length; j++) {
-        var opt = document.createElement("option");
-        opt.value = list[j];
-        opt.textContent = list[j];
-        select.appendChild(opt);
+            var nestedWeekMap = {};
+            for (var y = 0; y < monthEntries.length; y++) {
+                var ww = getWeekNumber(monthEntries[y].dato);
+                var nwk = ww.year + "-W" + String(ww.week).padStart(2, "0");
+                if (!nestedWeekMap[nwk]) nestedWeekMap[nwk] = { info: ww, entries: [] };
+                nestedWeekMap[nwk].entries.push(monthEntries[y]);
+            }
+            var nestedWeekKeys = Object.keys(nestedWeekMap).sort();
+            for (var n = 0; n < nestedWeekKeys.length; n++) {
+                blocks.push({
+                    type: "week",
+                    key: nestedWeekKeys[n],
+                    title: getMonthLabel(monthKey) + " - " + getWeekLabel(nestedWeekMap[nestedWeekKeys[n]].info),
+                    rows: aggregateCodes(nestedWeekMap[nestedWeekKeys[n]].entries)
+                });
+            }
+        }
     }
-    if (list.indexOf(current) !== -1 || current === "") select.value = current;
+    return blocks;
 }
 
-function populateMonthFilter(entries) {
-    var select = document.getElementById("filterMonth");
-    var current = select.value;
-    var months = {};
-    for (var i = 0; i < entries.length; i++) months[getMonthKey(entries[i].dato)] = true;
-    var list = Object.keys(months).sort();
 
-    select.innerHTML = '<option value="">Alle måneder</option>';
-    for (var j = 0; j < list.length; j++) {
-        var opt = document.createElement("option");
-        opt.value = list[j];
-        opt.textContent = getMonthLabel(list[j]);
-        select.appendChild(opt);
+function buildYearSectionHtml(yearRows, yearLabel) {
+    yearRows = Array.isArray(yearRows) ? yearRows : [];
+    yearLabel = yearLabel || "Årstotal";
+    const total = yearRows.reduce((sum, row) => sum + (Number(row.minutes || row.tid) || 0), 0);
+    if (!yearRows.length) {
+        return `
+        <div class="section-card year-total-section">
+            <h3>${escapeHtml(yearLabel)}</h3>
+            <div class="table-wrap">
+                <table class="results-table">
+                    <thead>
+                        <tr><th>Stopkode</th><th>Navn</th><th>Stop tid (min)</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td colspan="3">Ingen data</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>`;
     }
-    if (list.indexOf(current) !== -1 || current === "") select.value = current;
+    const rowsHtml = yearRows.map(function(r) {
+        var code = r.code != null ? r.code : r.kode;
+        var name = r.name != null ? r.name : r.navn;
+        var minutes = Number(r.minutes != null ? r.minutes : r.tid) || 0;
+        return `
+        <tr>
+            <td>${escapeHtml(String(code || ''))}</td>
+            <td>${escapeHtml(String(name || ''))}</td>
+            <td>${minutes.toFixed(2)}</td>
+        </tr>`;
+    }).join('');
+    return `
+    <div class="section-card year-total-section">
+        <h3>${escapeHtml(yearLabel)}</h3>
+        <div class="table-wrap">
+            <table class="results-table">
+                <thead>
+                    <tr><th>Stopkode</th><th>Navn</th><th>Stop tid (min)</th></tr>
+                </thead>
+                <tbody>
+                    ${rowsHtml}
+                    <tr class="total-row">
+                        <td colspan="2"><strong>${escapeHtml(yearLabel)}</strong></td>
+                        <td><strong>${total.toFixed(2)}</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>`;
 }
 
-function populatePdfMachineList(entries) {
-    var wrap = document.getElementById("pdfMachineList");
-    var prevChecked = {};
-    var boxes = wrap.querySelectorAll("input[type='checkbox']");
-    for (var i = 0; i < boxes.length; i++) prevChecked[boxes[i].value] = boxes[i].checked;
+function renderResults() {
+  ["results","result","output","summary"].forEach(function(id){ var el=document.getElementById(id); if(el) el.style.display=""; });
+    if (!globalEntries.length) return;
+    var entries = getFilteredEntries();
+    var resultSection = document.getElementById("resultSection");
+    var resultContent = document.getElementById("resultContent");
+    var ignoredInfo = document.getElementById("ignoredInfo");
+    var groupMode = document.getElementById("groupBy").value;
+
+    if (!entries.length) {
+        resultSection.style.display = "block";
+        resultContent.innerHTML = "<div class='summary-box'>Ingen data matcher de valgte filtre.</div>";
+        ignoredInfo.textContent = buildIgnoredInfo();
+        document.getElementById("btnPdf").style.display = "none";
+        return;
+    }
+
+    var machinesMap = {};
+    for (var i = 0; i < entries.length; i++) {
+        if (!machinesMap[entries[i].maskine]) machinesMap[entries[i].maskine] = [];
+        machinesMap[entries[i].maskine].push(entries[i]);
+    }
+    var machines = sortMachineList(Object.keys(machinesMap));
+    var html = "";
+
+    for (var m = 0; m < machines.length; m++) {
+        var machine = machines[m];
+        var machineEntries = machinesMap[machine];
+        var totalMachine = 0;
+        var yearTotals = {};
+        for (var j = 0; j < machineEntries.length; j++) {
+            totalMachine += machineEntries[j].tid;
+            var yk = getYearKey(machineEntries[j].dato);
+            if (!yearTotals[yk]) yearTotals[yk] = 0;
+            yearTotals[yk] += machineEntries[j].tid;
+        }
+
+        html += "<div class='machine-section'>";
+        html += "<h3>" + escapeHtml(machine) + "</h3>";
+        html += "<div class='summary-box'>Samlet stop tid: <strong>" + formatMinutes(totalMachine) + " min</strong></div>";
+
+        var yearKeys = Object.keys(yearTotals).sort();
+        if (yearKeys.length) {
+            html += "<div class='summary-box'><strong>Total pr. år:</strong><br>";
+            for (var yi = 0; yi < yearKeys.length; yi++) {
+                html += escapeHtml(yearKeys[yi]) + ": " + formatMinutes(yearTotals[yearKeys[yi]]) + " min";
+                if (yi < yearKeys.length - 1) html += "<br>";
+            }
+            html += "</div>";
+        }
+
+        var blocks = buildPeriodBlocks(machineEntries, groupMode);
+        for (var b = 0; b < blocks.length; b++) {
+            html += buildTableHtml(blocks[b].rows, blocks[b].title);
+        }
+
+        var yearEntryMap = {};
+        for (var ye = 0; ye < machineEntries.length; ye++) {
+            var yearKey = getYearKey(machineEntries[ye].dato);
+            if (!yearEntryMap[yearKey]) yearEntryMap[yearKey] = [];
+            yearEntryMap[yearKey].push(machineEntries[ye]);
+        }
+        var machineYearKeys = Object.keys(yearEntryMap).sort();
+        for (var y = 0; y < machineYearKeys.length; y++) {
+            var currentYear = machineYearKeys[y];
+            var yearRows = aggregateCodes(yearEntryMap[currentYear]).map(function(r) {
+                return { code: r.kode, name: r.navn, minutes: r.tid };
+            });
+            html += buildYearSectionHtml(yearRows, "ÅRSTOTAL " + currentYear);
+        }
+
+        html += "</div>";
+    }
+
+    resultContent.innerHTML = html;
+    ignoredInfo.textContent = buildIgnoredInfo();
+    resultSection.style.display = "block";
+    document.getElementById("btnPdf").style.display = "inline-block";
+}
+
+function buildIgnoredInfo() {
+    if (!globalParsedMeta) return "";
+    var txt = "Ignorerede linjer: " + globalParsedMeta.ignoredLines;
+    if (globalParsedMeta.unknownMachineNames && globalParsedMeta.unknownMachineNames.length) {
+        txt += " | Ukendte maskinnavne: " + globalParsedMeta.unknownMachineNames.join(", ");
+    }
+    return txt;
+}
+
+function beregn() {
+  ["results","result","output","summary"].forEach(function(id){ var el=document.getElementById(id); if(el) el.style.display=""; });
+    clearMessages();
+    var raw = document.getElementById("dataInput").value.trim();
+    if (!raw) {
+        showError("Indsæt data før du beregner.");
+        return;
+    }
+
+    var parsed = parseData(raw);
+    if (!parsed.entries.length) {
+        showError("Ingen gyldige linjer blev fundet. Tjek formatet: Dato[TAB]Maskine[TAB]Stopkode[TAB]Tid.");
+        return;
+    }
+
+    globalEntries = parsed.entries;
+    globalParsedMeta = parsed;
+    populateFilters(globalEntries);
+    renderResults();
+    showSuccess("Data indlæst: " + parsed.entries.length + " gyldige linjer.");
+}
+
+function ryd() {
+    document.getElementById("dataInput").value = "";
+    document.getElementById("groupBy").value = "uge_maaned";
+    document.getElementById("filterMachine").innerHTML = '<option value="">Alle maskiner</option>';
+    document.getElementById("filterMonth").innerHTML = '<option value="">Alle måneder</option>';
+    document.getElementById("enableDateRange").checked = false;
+    document.getElementById("dateRangeRow").style.display = "none";
+    document.getElementById("dateFrom").value = "";
+    document.getElementById("dateTo").value = "";
+    document.getElementById("stopkodeFilterSection").style.display = "none";
+    document.getElementById("pdfFilterSection").style.display = "none";
+    document.getElementById("resultSection").style.display = "none";
+    document.getElementById("resultContent").innerHTML = "";
+    document.getElementById("ignoredInfo").textContent = "";
+    document.getElementById("btnPdf").style.display = "none";
+    globalEntries = [];
+    globalParsedMeta = null;
+    clearMessages();
+}
 
 
+
+
+
+function drawPdfFrame(doc, title, subtitle, metaLines) {
+    var pageWidth = doc.internal.pageSize.getWidth();
+    var pageHeight = doc.internal.pageSize.getHeight();
+
+    doc.setFillColor(255,255,255);
+    doc.rect(0, 0, pageWidth, pageHeight, "F");
+
+    doc.setDrawColor(210, 0, 20);
+    doc.setLineWidth(0.8);
+    doc.line(12, 12, pageWidth - 12, 12);
+    doc.setDrawColor(32, 134, 132);
+    doc.setLineWidth(0.4);
+    doc.line(12, 16, pageWidth - 12, 16);
+
+    doc.setTextColor(210, 0, 20);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(18);
+    doc.text(String(title || ""), 14, 26);
+
+    if (subtitle) {
+        doc.setTextColor(32, 134, 132);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(11);
+        doc.text(String(subtitle), 14, 33);
+    }
+
+    var y = subtitle ? 41 : 36;
+    if (Array.isArray(metaLines)) {
+        doc.setTextColor(90, 90, 90);
+        doc.setFontSize(9);
+        for (var i = 0; i < metaLines.length; i++) {
+            if (!metaLines[i]) continue;
+            doc.text(String(metaLines[i]), 14, y, { maxWidth: pageWidth - 28 });
+            y += 5;
+        }
+    }
+
+    return y + 3;
+}
+
+function addPdfPageNumbers(doc) {
+    var totalPages = doc.getNumberOfPages();
+    var pageWidth = doc.internal.pageSize.getWidth();
+    var pageHeight = doc.internal.pageSize.getHeight();
+    for (var p = 1; p <= totalPages; p++) {
+        doc.setPage(p);
+        doc.setDrawColor(220, 220, 220);
+        doc.setLineWidth(0.2);
+        doc.line(12, pageHeight - 12, pageWidth - 12, pageHeight - 12);
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(100, 100, 100);
+        doc.text("Stopkodeberegner v4.6", 14, pageHeight - 7);
+        doc.text("Side " + p + " / " + totalPages, pageWidth - 14, pageHeight - 7, { align: "right" });
+    }
+}
+
+function renderYearTotalPdfTable(doc, machine, year, yearRows){
+    yearRows = Array.isArray(yearRows) ? yearRows : [];
+    if (!yearRows.length) return;
+
+    doc.addPage();
+
+    var totalMinutes = yearRows.reduce(function(sum, row) {
+        return sum + (Number(row.minutes || row.tid) || 0);
+    }, 0);
+
+    var startY = drawPdfFrame(doc, String(machine), "ÅRSTOTAL " + String(year), [
+        "Samlet stop tid: " + formatMinutes(totalMinutes) + " min"
+    ]);
+
+    var bodyRows = yearRows.map(function(r) {
+        return [
+            String(r.code || r.kode || ""),
+            String(r.name || r.navn || ""),
+            formatMinutesPdf(r.minutes != null ? r.minutes : r.tid)
+        ];
+    });
+
+    doc.autoTable({
+        startY: startY,
+        head: [["Stopkode", "Navn", "Stop tid (min)"]],
+        body: bodyRows,
+        foot: [["", "Årstotal", formatMinutesPdf(totalMinutes)]],
+        theme: "grid",
+        styles: { fillColor: [255,255,255], textColor: [0,0,0], lineColor: [180,180,180] },
+        headStyles: { fillColor: [240,240,240], textColor: [0,0,0], fontStyle: "bold" },
+        footStyles: { fillColor: [245,245,245], textColor: [0,0,0], fontStyle: "bold" },
+        alternateRowStyles: { fillColor: [248,248,248] },
+        didParseCell: function(data) {
+            if (data.section === "body") {
+                if (data.row.index === 0) data.cell.styles.fillColor = [255, 235, 238];
+                if (data.row.index === 1) data.cell.styles.fillColor = [255,243,224];
+                if (data.row.index === 2) data.cell.styles.fillColor = [224,247,250];
+            }
+        }
+    });
+}
+
+function downloadPdf(){
+    if (!globalEntries.length) {
+        showError("Der er ingen data at eksportere.");
+        return;
+    }
+
+    var selectedPdfMachines = getSelectedPdfMachines();
+    if (!selectedPdfMachines.length) {
+        showError("Vælg mindst én maskine til PDF.");
+        return;
+    }
+
+    var entries = getFilteredEntries().filter(function(e) {
+        return selectedPdfMachines.indexOf(e.maskine) !== -1;
+    });
+
+    if (!entries.length) {
+        showError("Ingen data matcher de valgte filtre til PDF.");
+        return;
+    }
+
+    var jsPDF = window.jspdf.jsPDF;
+    var doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    var pageWidth = doc.internal.pageSize.getWidth();
+
+    doc.setFillColor(255, 255, 255);
+    doc.rect(0, 0, pageWidth, 297, "F");
+    doc.setTextColor(210, 0, 20);
+    doc.setFontSize(24);
+    doc.text("Stop Kode Beregner v4.6", 105, 30, { align: "center" });
+    doc.setTextColor(32, 134, 132);
+    doc.setFontSize(14);
+    doc.text("Rapport over stop tid pr. maskine", 105, 42, { align: "center" });
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(11);
+
+    var periodText = "Periode: Alle data";
+    var selectedMonth = document.getElementById("filterMonth").value;
+    if (selectedMonth) periodText = "Periode: " + getMonthLabel(selectedMonth);
+    if (document.getElementById("enableDateRange").checked) {
+        var df = document.getElementById("dateFrom").value || "...";
+        var dt = document.getElementById("dateTo").value || "...";
+        periodText = "Periode: " + df + " til " + dt;
+    }
+
+    var groupingText = document.getElementById("groupBy").options[document.getElementById("groupBy").selectedIndex].text;
+    var generatedText = new Date().toLocaleString("da-DK");
+    var startY = drawPdfFrame(doc, "Stopkodeberegner", "Rapport over stop tid pr. maskine", [
+        periodText,
+        "Maskiner i rapport: " + selectedPdfMachines.join(", "),
+        "Gruppering: " + groupingText,
+        "Genereret: " + generatedText
+    ]);
+
+    doc.setFillColor(210, 0, 20);
+    doc.rect(14, startY + 4, 70, 18, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.text(String(selectedPdfMachines.length), 49, startY + 15, { align: "center" });
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.text("valgte maskiner", 49, startY + 21, { align: "center" });
+
+    doc.setFillColor(32, 134, 132);
+    doc.rect(90, startY + 4, 105, 18, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.text(String(entries.length), 142.5, startY + 15, { align: "center" });
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.text("registrerede stoplinjer i rapporten", 142.5, startY + 21, { align: "center" });
+
+    doc.setTextColor(90, 90, 90);
+    doc.setFontSize(10);
+    doc.text("Denne rapport viser stoptid fordelt på maskiner, måneder, uger og årstotaler afhængigt af det valgte grupperingstrin.", 14, startY + 35, { maxWidth: 180 });
+
+    var machineMap = {};
+    for (var i = 0; i < entries.length; i++) {
+        if (!machineMap[entries[i].maskine]) machineMap[entries[i].maskine] = [];
+        machineMap[entries[i].maskine].push(entries[i]);
+    }
+
+    var machines = sortMachineList(Object.keys(machineMap));
+    var firstDataPage = true;
+
+    for (var m = 0; m < machines.length; m++) {
+        var machine = machines[m];
+        var machineEntries = machineMap[machine];
+
+        var monthMap = {};
+        for (var j = 0; j < machineEntries.length; j++) {
+            var mk = getMonthKey(machineEntries[j].dato);
+            if (!monthMap[mk]) monthMap[mk] = [];
+            monthMap[mk].push(machineEntries[j]);
+        }
+        var monthKeys = Object.keys(monthMap).sort();
+
+        for (var mo = 0; mo < monthKeys.length; mo++) {
+            doc.addPage();
+            firstDataPage = false;
+
+            var monthKey = monthKeys[mo];
+            var monthEntries = monthMap[monthKey];
+            var machineTotal = 0;
+            for (var tt = 0; tt < machineEntries.length; tt++) machineTotal += machineEntries[tt].tid;
+
+            var monthTotal = monthEntries.reduce(function(s, e){ return s + e.tid; }, 0);
+            var tableStartY = drawPdfFrame(doc, machine, getMonthLabel(monthKey), [
+                "Samlet stop tid for maskine: " + formatMinutes(machineTotal) + " min",
+                "Månedstotal: " + formatMinutes(monthTotal) + " min"
+            ]);
+
+            var monthRows = aggregateCodes(monthEntries).map(function(r) {
+                return [String(r.kode), r.navn, formatMinutesPdf(r.tid)];
+            });
+
+            doc.autoTable({
+                startY: tableStartY,
+                head: [["Stopkode", "Navn", "Stop tid (min)"]],
+                body: monthRows,
+                foot: [["", "Månedstotal", formatMinutesPdf(monthTotal)]],
+                theme: "grid",
+                styles: { fillColor: [255,255,255], textColor: [0,0,0], lineColor: [180,180,180] },
+                headStyles: { fillColor: [240,240,240], textColor: [0,0,0] },
+                footStyles: { fillColor: [245,245,245], textColor: [0,0,0], fontStyle: "bold" },
+                alternateRowStyles: { fillColor: [248,248,248] },
+                didParseCell: function(data) {
+                    if (data.section === "body") {
+                        if (data.row.index === 0) data.cell.styles.fillColor = [255, 235, 238];
+                        if (data.row.index === 1) data.cell.styles.fillColor = [255,243,224];
+                        if (data.row.index === 2) data.cell.styles.fillColor = [224,247,250];
+                    }
+                }
+            });
+
+            if (document.getElementById("groupBy").value !== "maaned") {
+                var weekMap = {};
+                for (var w = 0; w < monthEntries.length; w++) {
+                    var wi = getWeekNumber(monthEntries[w].dato);
+                    var wk = wi.year + "-W" + String(wi.week).padStart(2, "0");
+                    if (!weekMap[wk]) weekMap[wk] = { info: wi, entries: [] };
+                    weekMap[wk].entries.push(monthEntries[w]);
+                }
+                var weekKeys = Object.keys(weekMap).sort();
+                var startY = doc.lastAutoTable.finalY + 10;
+
+                for (var k = 0; k < weekKeys.length; k++) {
+                    var wkObj = weekMap[weekKeys[k]];
+                    if (startY > 245) {
+                        doc.addPage();
+                        doc.setFillColor(255,255,255);
+                        doc.rect(0, 0, pageWidth, 297, "F");
+                        startY = drawPdfFrame(doc, machine, getMonthLabel(monthKey) + " fortsat", []);
+                    }
+                    doc.setTextColor(240, 165, 0);
+                    doc.setFont("helvetica", "bold");
+                    doc.text(getWeekLabel(wkObj.info), 14, startY);
+                    var wkRows = aggregateCodes(wkObj.entries).map(function(r) {
+                        return [String(r.kode), r.navn, formatMinutesPdf(r.tid)];
+                    });
+                    doc.autoTable({
+                        startY: startY + 3,
+                        head: [["Stopkode", "Navn", "Stop tid (min)"]],
+                        body: wkRows,
+                        theme: "grid",
+                        styles: { fontSize: 8, fillColor: [245,245,245], textColor: [20,20,20], lineColor: [32,134,132] },
+                        headStyles: { fillColor: [240,240,240], textColor: [0,0,0] },
+                        alternateRowStyles: { fillColor: [248,248,248] },
+                        didParseCell: function(data) {
+                            if (data.section === "body") {
+                                if (data.row.index === 0) data.cell.styles.fillColor = [255, 235, 238];
+                                if (data.row.index === 1) data.cell.styles.fillColor = [255,243,224];
+                                if (data.row.index === 2) data.cell.styles.fillColor = [224,247,250];
+                            }
+                        }
+                    });
+                    startY = doc.lastAutoTable.finalY + 8;
+                }
+            }
+        }
+
+        var yearRowsMap = getYearRowsForMachine(machineEntries);
+        var machineYearKeys = Object.keys(yearRowsMap).sort();
+        for (var y = 0; y < machineYearKeys.length; y++) {
+            renderYearTotalPdfTable(doc, machine, machineYearKeys[y], yearRowsMap[machineYearKeys[y]]);
+        }
+    }
+
+    addPdfPageNumbers(doc);
+    doc.save("stopkodeberegner_v4_6_rapport.pdf");
+}
+</script>
+</body>
+</html>
