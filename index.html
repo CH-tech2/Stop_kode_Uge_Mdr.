@@ -1,11 +1,11 @@
-<!-- Kontrolleret version V4.6 -->
-<!-- Stopkodeberegner - Version 4.6 -->
+<!-- Kontrolleret version V4.8 -->
+<!-- Stop Kode Beregner - Version 4.8 -->
 <!DOCTYPE html>
 <html lang="da">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stopkodeberegner - Version 4.6</title>
+    <title>Stop Kode Beregner - Version 4.8</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 // --- V3.9 compatibility fixes ---
@@ -56,13 +56,6 @@ document.addEventListener('DOMContentLoaded', function(){
             color: #D20014;
             margin-bottom: 10px;
             font-size: 28px;
-        }
-        .title-logo {
-            display: block;
-            max-width: 100%;
-            width: 420px;
-            height: auto;
-            margin: 0 auto;
         }
         .subtitle {
             text-align: center;
@@ -334,9 +327,9 @@ document.addEventListener('DOMContentLoaded', function(){
     
     
 <div class="container">
-    <h1><img src="LOGO.png" alt="Stopkodeberegner logo" class="title-logo"></h1>
+    <h1>⏱️ Stop Kode Beregner</h1>
     <p class="subtitle">Analyse af stop tid pr. maskine, uge, måned og år</p>
-    <p class="version">Version 4.6</p>
+    <p class="version">Version 4.8</p>
 
     <div class="input-section">
         <label for="dataInput">📋 Indsæt data fra Excel her:</label>
@@ -1139,7 +1132,7 @@ function addPdfPageNumbers(doc) {
         doc.setFont("helvetica", "normal");
         doc.setFontSize(9);
         doc.setTextColor(100, 100, 100);
-        doc.text("Stopkodeberegner v4.6", 14, pageHeight - 7);
+        doc.text("Stop Kode Beregner v4.8", 14, pageHeight - 7);
         doc.text("Side " + p + " / " + totalPages, pageWidth - 14, pageHeight - 7, { align: "right" });
     }
 }
@@ -1215,7 +1208,7 @@ function downloadPdf(){
     doc.rect(0, 0, pageWidth, 297, "F");
     doc.setTextColor(210, 0, 20);
     doc.setFontSize(24);
-    doc.text("Stop Kode Beregner v4.6", 105, 30, { align: "center" });
+    doc.text("Stop Kode Beregner v4.0", 105, 30, { align: "center" });
     doc.setTextColor(32, 134, 132);
     doc.setFontSize(14);
     doc.text("Rapport over stop tid pr. maskine", 105, 42, { align: "center" });
@@ -1233,7 +1226,7 @@ function downloadPdf(){
 
     var groupingText = document.getElementById("groupBy").options[document.getElementById("groupBy").selectedIndex].text;
     var generatedText = new Date().toLocaleString("da-DK");
-    var startY = drawPdfFrame(doc, "Stopkodeberegner", "Rapport over stop tid pr. maskine", [
+    var startY = drawPdfFrame(doc, "Stop Kode Beregner", "Rapport over stop tid pr. maskine", [
         periodText,
         "Maskiner i rapport: " + selectedPdfMachines.join(", "),
         "Gruppering: " + groupingText,
@@ -1376,7 +1369,7 @@ function downloadPdf(){
     }
 
     addPdfPageNumbers(doc);
-    doc.save("stopkodeberegner_v4_6_rapport.pdf");
+    doc.save("stopkodeberegner_v4_8_rapport.pdf");
 }
 </script>
 </body>
