@@ -1,11 +1,10 @@
-<!-- Kontrolleret version V4.8 -->
-<!-- Stop Kode Beregner - Version 4.8 -->
+<!-- Stopkodeberegner - Version 5.3 -->
 <!DOCTYPE html>
 <html lang="da">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stop Kode Beregner - Version 4.8</title>
+    <title>Stopkodeberegner - Version 5.3</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 // --- V3.9 compatibility fixes ---
@@ -324,12 +323,14 @@ document.addEventListener('DOMContentLoaded', function(){
 </style>
 </head>
 <body>
+    <img id="pdfLogo" src="LOGO.png" alt="Logo" style="display:none;">
+
     
     
 <div class="container">
     <h1>⏱️ Stop Kode Beregner</h1>
     <p class="subtitle">Analyse af stop tid pr. maskine, uge, måned og år</p>
-    <p class="version">Version 4.8</p>
+    <p class="version">Version 5.3</p>
 
     <div class="input-section">
         <label for="dataInput">📋 Indsæt data fra Excel her:</label>
@@ -476,12 +477,30 @@ function findMaskineMatch(inputName) {
 }
 
 function parseDato(str) {
-    var parts = str.trim().split('-');
+    var value = String(str || "").trim();
+    if (!value) return null;
+
+    var parts;
+    if (value.indexOf(".") !== -1) {
+        parts = value.split(".");
+    } else if (value.indexOf("-") !== -1) {
+        parts = value.split("-");
+    } else {
+        return null;
+    }
+
     if (parts.length !== 3) return null;
+
     var d = parseInt(parts[0], 10);
     var m = parseInt(parts[1], 10);
     var y = parseInt(parts[2], 10);
+
     if (isNaN(d) || isNaN(m) || isNaN(y)) return null;
+
+    if (parts[2].length === 2) {
+        y = 2000 + y;
+    }
+
     var dt = new Date(y, m - 1, d);
     if (isNaN(dt.getTime())) return null;
     if (dt.getDate() !== d || dt.getMonth() !== m - 1 || dt.getFullYear() !== y) return null;
@@ -792,8 +811,6 @@ function getFilteredEntries() {
     }
     if (selectedCodes.length) {
         entries = entries.filter(function(e) { return selectedCodes.indexOf(e.kode) !== -1; });
-    } else {
-        entries = [];
     }
     if (dateRangeEnabled) {
         if (dateFrom) {
@@ -1109,10 +1126,13 @@ function drawPdfFrame(doc, title, subtitle, metaLines) {
     if (Array.isArray(metaLines)) {
         doc.setTextColor(90, 90, 90);
         doc.setFontSize(9);
+        var textWidth = pageWidth - 28;
+        var lineHeight = 4.5;
         for (var i = 0; i < metaLines.length; i++) {
             if (!metaLines[i]) continue;
-            doc.text(String(metaLines[i]), 14, y, { maxWidth: pageWidth - 28 });
-            y += 5;
+            var wrapped = doc.splitTextToSize(String(metaLines[i]), textWidth);
+            doc.text(wrapped, 14, y);
+            y += wrapped.length * lineHeight + 1.5;
         }
     }
 
@@ -1132,7 +1152,7 @@ function addPdfPageNumbers(doc) {
         doc.setFont("helvetica", "normal");
         doc.setFontSize(9);
         doc.setTextColor(100, 100, 100);
-        doc.text("Stop Kode Beregner v4.8", 14, pageHeight - 7);
+        doc.text("Stopkodeberegner v4.8", 14, pageHeight - 7);
         doc.text("Side " + p + " / " + totalPages, pageWidth - 14, pageHeight - 7, { align: "right" });
     }
 }
@@ -1208,12 +1228,14 @@ function downloadPdf(){
     doc.rect(0, 0, pageWidth, 297, "F");
     doc.setTextColor(210, 0, 20);
     doc.setFontSize(24);
-    doc.text("Stop Kode Beregner v4.0", 105, 30, { align: "center" });
+    doc.text("Stop Kode Beregner v5.3", 105, 30, { align: "center" });
     doc.setTextColor(32, 134, 132);
     doc.setFontSize(14);
     doc.text("Rapport over stop tid pr. maskine", 105, 42, { align: "center" });
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(11);
+    var pdfDato = new Date().toLocaleDateString("da-DK");
+    doc.text("Dato: " + pdfDato, 105, 49, { align: "center" });
 
     var periodText = "Periode: Alle data";
     var selectedMonth = document.getElementById("filterMonth").value;
@@ -1226,7 +1248,7 @@ function downloadPdf(){
 
     var groupingText = document.getElementById("groupBy").options[document.getElementById("groupBy").selectedIndex].text;
     var generatedText = new Date().toLocaleString("da-DK");
-    var startY = drawPdfFrame(doc, "Stop Kode Beregner", "Rapport over stop tid pr. maskine", [
+    var startY = drawPdfFrame(doc, "Stopkodeberegner", "Rapport over stop tid pr. maskine", [
         periodText,
         "Maskiner i rapport: " + selectedPdfMachines.join(", "),
         "Gruppering: " + groupingText,
