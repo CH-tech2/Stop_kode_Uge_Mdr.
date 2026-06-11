@@ -1,11 +1,11 @@
-<!-- Kontrolleret version V6.4 -->
-<!-- Stopkodeberegner - Version 6.4 -->
+<!-- Kontrolleret version V5.8 -->
+<!-- Stopkodeberegner - Version 5.8 -->
 <!DOCTYPE html>
 <html lang="da">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stopkodeberegner - Version 6.4</title>
+    <title>Stopkodeberegner - Version 5.8</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 // --- V3.9 compatibility fixes ---
@@ -331,7 +331,7 @@ document.addEventListener('DOMContentLoaded', function(){
 <div class="container">
     <h1>⏱️ Stop Kode Beregner</h1>
     <p class="subtitle">Analyse af stop tid pr. maskine, uge, måned og år</p>
-    <p class="version">Version 6.4</p>
+    <p class="version">Version 5.8</p>
 
     <div class="input-section">
         <label for="dataInput">📋 Indsæt data fra Excel her:</label>
@@ -600,6 +600,7 @@ function aggregateCodes(entries) {
     return arr;
 }
 
+
 function aggregateMissingTimeCodes(entries) {
     var map = {};
     for (var i = 0; i < entries.length; i++) {
@@ -610,23 +611,30 @@ function aggregateMissingTimeCodes(entries) {
     }
     var arr = [];
     for (var k = 1; k <= 16; k++) {
-        if (map[k]) arr.push({ kode: k, navn: STOPKODER[k] || ('Kode ' + k), antal: map[k] });
+        if (map[k]) {
+            arr.push({ kode: k, navn: STOPKODER[k] || ("Kode " + k), antal: map[k] });
+        }
     }
     return arr;
 }
 
 function buildMissingTimeTableHtml(rows, title) {
     rows = Array.isArray(rows) ? rows : [];
-    if (!rows.length) return '';
-    var html = '<h4>' + escapeHtml(title) + '</h4>';
-    html += '<table><thead><tr><th>Stopkode</th><th>Navn</th><th>Antal uden tid</th></tr></thead><tbody>';
+    if (!rows.length) return "";
+    var html = "<h4>" + escapeHtml(title) + "</h4>";
+    html += "<table>";
+    html += "<thead><tr><th>Stopkode</th><th>Navn</th><th>Antal uden tid</th></tr></thead><tbody>";
     var total = 0;
     for (var i = 0; i < rows.length; i++) {
         total += rows[i].antal;
-        html += '<tr><td>' + rows[i].kode + '</td><td>' + escapeHtml(rows[i].navn) + '</td><td>' + rows[i].antal + '</td></tr>';
+        html += "<tr>";
+        html += "<td>" + rows[i].kode + "</td>";
+        html += "<td>" + escapeHtml(rows[i].navn) + "</td>";
+        html += "<td>" + rows[i].antal + "</td>";
+        html += "</tr>";
     }
     html += "<tr class='total-row'><td colspan='2'>Total</td><td>" + total + "</td></tr>";
-    html += '</tbody></table>';
+    html += "</tbody></table>";
     return html;
 }
 
@@ -778,7 +786,6 @@ function parseData(raw) {
     var ignoredLines = 0;
     var unknownMachineNames = {};
     var missingTimeCount = 0;
-    var missingTimeCount = 0;
     for (var li = 0; li < lines.length; li++) {
         var line = lines[li].trim();
         if (!line) continue;
@@ -812,7 +819,6 @@ function parseData(raw) {
         entries: entries,
         ignoredLines: ignoredLines,
         unknownMachineNames: Object.keys(unknownMachineNames),
-        missingTimeCount: missingTimeCount,
         missingTimeCount: missingTimeCount
     };
 }
@@ -882,7 +888,7 @@ function buildPeriodBlocks(machineEntries, mode) {
             if (!monthMap[mk]) monthMap[mk] = [];
             monthMap[mk].push(machineEntries[i]);
         }
-        var monthKeys = Object.keys(monthMap).sort();
+        var monthKeys = Object.keys(monthMap).sort(function(a,b){ return a.localeCompare(b); });
         for (var m = 0; m < monthKeys.length; m++) {
             blocks.push({
                 type: "month",
@@ -1058,7 +1064,6 @@ function renderResults() {
         for (var b = 0; b < blocks.length; b++) {
             html += buildTableHtml(blocks[b].rows, blocks[b].title);
             html += buildMissingTimeTableHtml(blocks[b].missingRows || [], blocks[b].title + " - Antal registreringer uden tid (?)");
-            html += buildMissingTimeTableHtml(blocks[b].missingRows || [], blocks[b].title + ' - Antal registreringer uden tid (?)');
         }
 
         var yearEntryMap = {};
@@ -1143,73 +1148,51 @@ function ryd() {
 
 
 
-function drawPdfFrame(doc, title, subtitle, metaLines) {
+function drawPdfFrame(doc, title, subtitle, metaLines, startY) {
     var pageWidth = doc.internal.pageSize.getWidth();
     var pageHeight = doc.internal.pageSize.getHeight();
 
-    doc.setFillColor(255,255,255);
-    doc.rect(0, 0, pageWidth, pageHeight, "F");
-    
-    // Mindre top-margin for bedre plads-udnyttelse
-    var topMargin = 8;  // Fra 12
+    var baseY = (typeof startY === "number" && startY > 14) ? startY : 14;
 
+    if (baseY <= 14) {
+        doc.setFillColor(255,255,255);
+        doc.rect(0, 0, pageWidth, pageHeight, "F");
 
-    doc.setDrawColor(210, 0, 20);
-    doc.setLineWidth(0.8);
-    doc.line(12, 12, pageWidth - 12, 12);
-    doc.setDrawColor(32, 134, 132);
-    doc.setLineWidth(0.4);
-    doc.line(12, 16, pageWidth - 12, 16);
-
-    var isFrontPage =
-        String(title || "") === "Stopkodeberegner" &&
-        String(subtitle || "") === "Rapport over stop tid pr. maskine";
-
-    if (isFrontPage) {
-        doc.setTextColor(210, 0, 20);
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(18);
-        doc.text(String(title || ""), 14, 26);
-
-        if (subtitle) {
-            doc.setTextColor(32, 134, 132);
-            doc.setFont("helvetica", "normal");
-            doc.setFontSize(11);
-            doc.text(String(subtitle), 14, 33);
-        }
-
-        var y = subtitle ? 41 : 36;
-        if (Array.isArray(metaLines)) {
-            doc.setTextColor(90, 90, 90);
-            doc.setFontSize(9);
-            var textWidth = pageWidth - 28;
-            var lineHeight = 4.5;
-            for (var i = 0; i < metaLines.length; i++) {
-                if (!metaLines[i]) continue;
-                var wrapped = doc.splitTextToSize(String(metaLines[i]), textWidth);
-                doc.text(wrapped, 14, y);
-                y += wrapped.length * lineHeight + 1.5;
-            }
-        }
-        return y + 3;
+        doc.setDrawColor(210, 0, 20);
+        doc.setLineWidth(0.8);
+        doc.line(12, 12, pageWidth - 12, 12);
+        doc.setDrawColor(32, 134, 132);
+        doc.setLineWidth(0.4);
+        doc.line(12, 16, pageWidth - 12, 16);
     }
 
-    // Datasider: vis kun kompakt header og lad tabellen starte helt oppe
-      // Datasider: KOMPAKT header for maksimal data-plads
     doc.setTextColor(210, 0, 20);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);  // Fra 14
-    doc.text(String(title || ""), 10, 18);  // Fra 14, 24
+    doc.setFontSize(18);
+    doc.text(String(title || ""), 14, baseY + 12);
 
     if (subtitle) {
         doc.setTextColor(32, 134, 132);
         doc.setFont("helvetica", "normal");
-        doc.setFontSize(8);  // Fra 9.5
-        doc.text(String(subtitle), 10, 22);  // Fra 14, 29
+        doc.setFontSize(11);
+        doc.text(String(subtitle), 14, baseY + 19);
     }
 
-    return subtitle ? 26 : 22;  // Fra 33 : 28
+    var y = subtitle ? (baseY + 27) : (baseY + 22);
+    if (Array.isArray(metaLines)) {
+        doc.setTextColor(90, 90, 90);
+        doc.setFontSize(9);
+        var textWidth = pageWidth - 28;
+        var lineHeight = 4.5;
+        for (var i = 0; i < metaLines.length; i++) {
+            if (!metaLines[i]) continue;
+            var wrapped = doc.splitTextToSize(String(metaLines[i]), textWidth);
+            doc.text(wrapped, 14, y);
+            y += wrapped.length * lineHeight + 1.5;
+        }
+    }
 
+    return y + 3;
 }
 
 function addPdfPageNumbers(doc) {
@@ -1225,7 +1208,7 @@ function addPdfPageNumbers(doc) {
         doc.setFont("helvetica", "normal");
         doc.setFontSize(9);
         doc.setTextColor(100, 100, 100);
-        doc.text("Stopkodeberegner v6.2", 14, pageHeight - 7);
+        doc.text("Stopkodeberegner v5.8", 14, pageHeight - 7);
         doc.text("Side " + p + " / " + totalPages, pageWidth - 14, pageHeight - 7, { align: "right" });
     }
 }
@@ -1284,9 +1267,26 @@ function downloadPdf(){
         return;
     }
 
-    var entries = getFilteredEntries().filter(function(e) {
+    var entries = globalEntries.filter(function(e) {
         return selectedPdfMachines.indexOf(e.maskine) !== -1;
     });
+
+    var selectedCodes = getSelectedStopkoder();
+    if (selectedCodes.length) {
+        entries = entries.filter(function(e) { return selectedCodes.indexOf(e.kode) !== -1; });
+    }
+
+    if (document.getElementById("enableDateRange").checked) {
+        var dateFromPdf = parseInputDateValue(document.getElementById("dateFrom").value);
+        var dateToPdf = parseInputDateValue(document.getElementById("dateTo").value);
+        if (dateFromPdf) {
+            entries = entries.filter(function(e) { return e.dato >= dateFromPdf; });
+        }
+        if (dateToPdf) {
+            var endPdf = new Date(dateToPdf.getFullYear(), dateToPdf.getMonth(), dateToPdf.getDate(), 23, 59, 59, 999);
+            entries = entries.filter(function(e) { return e.dato <= endPdf; });
+        }
+    }
 
     if (!entries.length) {
         showError("Ingen data matcher de valgte filtre til PDF.");
@@ -1296,12 +1296,13 @@ function downloadPdf(){
     var jsPDF = window.jspdf.jsPDF;
     var doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
     var pageWidth = doc.internal.pageSize.getWidth();
+    var pageHeight = doc.internal.pageSize.getHeight();
 
     doc.setFillColor(255, 255, 255);
     doc.rect(0, 0, pageWidth, 297, "F");
     doc.setTextColor(210, 0, 20);
     doc.setFontSize(24);
-    doc.text("Stop Kode Beregner v6.2", 105, 30, { align: "center" });
+    doc.text("Stop Kode Beregner v5.8", 105, 30, { align: "center" });
     doc.setTextColor(32, 134, 132);
     doc.setFontSize(14);
     doc.text("Rapport over stop tid pr. maskine", 105, 42, { align: "center" });
@@ -1349,7 +1350,7 @@ function downloadPdf(){
 
     doc.setTextColor(90, 90, 90);
     doc.setFontSize(10);
-    doc.text("Denne rapport viser stoptid fordelt på maskiner, måneder, uger og årstotaler afhængigt af det valgte grupperingstrin.", 14, startY + 35, { maxWidth: 180 });
+    doc.text("Denne rapport viser stoptid fordelt på maskiner og måneder med mindst muligt sideforbrug i PDF.", 14, startY + 35, { maxWidth: 180 });
 
     var machineMap = {};
     for (var i = 0; i < entries.length; i++) {
@@ -1359,9 +1360,14 @@ function downloadPdf(){
 
     var machines = sortMachineList(Object.keys(machineMap));
 
+    function estimateTableHeight(rowCount) {
+        return 18 + (Math.max(1, rowCount) * 7) + 14;
+    }
+
     for (var m = 0; m < machines.length; m++) {
         var machine = machines[m];
         var machineEntries = machineMap[machine];
+        doc.addPage();
 
         var monthMap = {};
         for (var j = 0; j < machineEntries.length; j++) {
@@ -1369,23 +1375,33 @@ function downloadPdf(){
             if (!monthMap[mk]) monthMap[mk] = [];
             monthMap[mk].push(machineEntries[j]);
         }
-        var monthKeys = Object.keys(monthMap).sort();
+
+        var monthKeys = Object.keys(monthMap).sort(function(a,b){ return a.localeCompare(b); });
+        var machineTotal = 0;
+        for (var tt = 0; tt < machineEntries.length; tt++) machineTotal += machineEntries[tt].tid;
+        var currentY = 14;
 
         for (var mo = 0; mo < monthKeys.length; mo++) {
-            doc.addPage();
-
             var monthKey = monthKeys[mo];
             var monthEntries = monthMap[monthKey];
-            var machineTotal = 0;
-            for (var tt = 0; tt < machineEntries.length; tt++) machineTotal += machineEntries[tt].tid;
             var monthTotal = monthEntries.reduce(function(s, e){ return s + e.tid; }, 0);
+            var monthRowsAgg = aggregateCodes(monthEntries);
+            var missingRowsAgg = aggregateMissingTimeCodes(monthEntries);
+
+            var neededHeight = 30 + estimateTableHeight(monthRowsAgg.length);
+            if (missingRowsAgg.length) neededHeight += estimateTableHeight(missingRowsAgg.length) + 8;
+
+            if (currentY + neededHeight > pageHeight - 18) {
+                doc.addPage();
+                currentY = 14;
+            }
 
             var tableStartY = drawPdfFrame(doc, machine, getMonthLabel(monthKey), [
                 "Samlet stop tid for maskine: " + formatMinutes(machineTotal) + " min",
                 "Månedstotal: " + formatMinutes(monthTotal) + " min"
-            ]);
+            ], currentY);
 
-            var monthRows = aggregateCodes(monthEntries).map(function(r) {
+            var monthRows = monthRowsAgg.map(function(r) {
                 return [String(r.kode), r.navn, formatMinutesPdf(r.tid)];
             });
 
@@ -1393,94 +1409,90 @@ function downloadPdf(){
                 startY: tableStartY,
                 head: [["Stopkode", "Navn", "Stop tid (min)"]],
                 body: monthRows,
-                foot: [["", "Månedstotal", formatMinutesPdf(monthTotal)]],
+                foot: [["", "Total", formatMinutesPdf(monthTotal)]],
                 theme: "grid",
-                styles: { fillColor: [255,255,255], textColor: [0,0,0], lineColor: [180,180,180] },
-                headStyles: { fillColor: [240,240,240], textColor: [0,0,0] },
+                styles: { fillColor: [255,255,255], textColor: [0,0,0], lineColor: [180,180,180], fontSize: 9, cellPadding: 2.2 },
+                headStyles: { fillColor: [240,240,240], textColor: [0,0,0], fontStyle: "bold" },
                 footStyles: { fillColor: [245,245,245], textColor: [0,0,0], fontStyle: "bold" },
-                alternateRowStyles: { fillColor: [248,248,248] }
+                alternateRowStyles: { fillColor: [248,248,248] },
+                margin: { left: 14, right: 14 },
+                didParseCell: function(data) {
+                    if (data.section === "body") {
+                        if (data.row.index === 0) data.cell.styles.fillColor = [255, 235, 238];
+                        if (data.row.index === 1) data.cell.styles.fillColor = [255,243,224];
+                        if (data.row.index === 2) data.cell.styles.fillColor = [224,247,250];
+                    }
+                }
             });
 
-            var nextY = doc.lastAutoTable.finalY + 2; // Mindre mellemrum
-            var missingAgg = aggregateMissingTimeCodes(monthEntries);
+            currentY = doc.lastAutoTable.finalY + 6;
 
-            if (missingAgg.length) {
-                doc.setTextColor(32, 134, 132);
-                doc.setFont("helvetica", "bold");
-                doc.setFontSize(10);
-                doc.text("Registreringer uden tid (?)", 14, nextY);
-                var missingRows = missingAgg.map(function(r) {
+            if (missingRowsAgg.length) {
+                if (currentY + estimateTableHeight(missingRowsAgg.length) > pageHeight - 18) {
+                    doc.addPage();
+                    currentY = 14;
+                    tableStartY = drawPdfFrame(doc, machine, getMonthLabel(monthKey) + " - Registreringer uden tid (?)", [
+                        "Kun stopkoder med registreret ? vises her"
+                    ], currentY);
+                } else {
+                    doc.setTextColor(32, 134, 132);
+                    doc.setFont("helvetica", "bold");
+                    doc.setFontSize(10);
+                    doc.text("Registreringer uden tid (?)", 14, currentY);
+                    tableStartY = currentY + 3;
+                }
+
+                var missingRows = missingRowsAgg.map(function(r) {
                     return [String(r.kode), r.navn, String(r.antal)];
                 });
-                var missingTotal = missingAgg.reduce(function(s, r){ return s + r.antal; }, 0);
+                var missingTotal = missingRowsAgg.reduce(function(sum, r){ return sum + r.antal; }, 0);
+
                 doc.autoTable({
-                    startY: nextY + 3,
+                    startY: tableStartY,
                     head: [["Stopkode", "Navn", "Antal uden tid"]],
                     body: missingRows,
-                    foot: [["", "Total uden tid", String(missingTotal)]],
+                    foot: [["", "Total", String(missingTotal)]],
                     theme: "grid",
-                    styles: { fontSize: 8.5, fillColor: [255,255,255], textColor: [0,0,0], lineColor: [180,180,180] },
-                    headStyles: { fillColor: [240,240,240], textColor: [0,0,0] },
+                    styles: { fillColor: [255,255,255], textColor: [0,0,0], lineColor: [180,180,180], fontSize: 9, cellPadding: 2.2 },
+                    headStyles: { fillColor: [240,240,240], textColor: [0,0,0], fontStyle: "bold" },
                     footStyles: { fillColor: [245,245,245], textColor: [0,0,0], fontStyle: "bold" },
-                    alternateRowStyles: { fillColor: [250,250,250] }
+                    alternateRowStyles: { fillColor: [248,248,248] },
+                    margin: { left: 14, right: 14 }
                 });
-                nextY = doc.lastAutoTable.finalY + 10;
-            }
 
-            if (document.getElementById("groupBy").value !== "maaned") {
-                var weekMap = {};
-                for (var w = 0; w < monthEntries.length; w++) {
-                    var wi = getWeekNumber(monthEntries[w].dato);
-                    var wk = wi.year + "-W" + String(wi.week).padStart(2, "0");
-                    if (!weekMap[wk]) weekMap[wk] = { info: wi, entries: [] };
-                    weekMap[wk].entries.push(monthEntries[w]);
-                }
-                var weekKeys = Object.keys(weekMap).sort();
-                var startWeekY = nextY;
-
-                for (var k = 0; k < weekKeys.length; k++) {
-                    var wkObj = weekMap[weekKeys[k]];
-                    if (startWeekY > 245) {
-                        doc.addPage();
-                        doc.setFillColor(255,255,255);
-                        doc.rect(0, 0, pageWidth, 297, "F");
-                        startWeekY = drawPdfFrame(doc, machine, getMonthLabel(monthKey) + " fortsat", []);
-                    }
-                    doc.setTextColor(240, 165, 0);
-                    doc.setFont("helvetica", "bold");
-                    doc.text(getWeekLabel(wkObj.info), 14, startWeekY);
-                    var wkRows = aggregateCodes(wkObj.entries).map(function(r) {
-                        return [String(r.kode), r.navn, formatMinutesPdf(r.tid)];
-                    });
-                   doc.autoTable({
-    startY: startWeekY + 3,
-    head: [["Stopkode", "Navn", "Stop tid (min)"]],
-    body: wkRows,
-    theme: "grid",
-    margin: {top: 0, right: 8, bottom: 0, left: 8},
-    styles: { fontSize: 7, fillColor: [245,245,245], cellPadding: 1,
- textColor: [20,20,20], lineColor: [32,134,132] },
-                        headStyles: { fillColor: [240,240,240], textColor: [0,0,0] },
-                        alternateRowStyles: { fillColor: [248,248,248] }
-                    });
-                    startWeekY = doc.lastAutoTable.finalY + 8;
-                }
+                currentY = doc.lastAutoTable.finalY + 8;
+            } else {
+                currentY += 4;
             }
         }
 
-        var yearRowsMap = getYearRowsForMachine(machineEntries);
-        var machineYearKeys = Object.keys(yearRowsMap).sort();
+        var yearEntryMap = {};
+        for (var ye = 0; ye < machineEntries.length; ye++) {
+            var yearKey = getYearKey(machineEntries[ye].dato);
+            if (!yearEntryMap[yearKey]) yearEntryMap[yearKey] = [];
+            yearEntryMap[yearKey].push(machineEntries[ye]);
+        }
+        var machineYearKeys = Object.keys(yearEntryMap).sort();
         for (var y = 0; y < machineYearKeys.length; y++) {
-            renderYearTotalPdfTable(doc, machine, machineYearKeys[y], yearRowsMap[machineYearKeys[y]]);
+            var currentYear = machineYearKeys[y];
+            var yearRows = aggregateCodes(yearEntryMap[currentYear]).map(function(r) {
+                return { code: r.kode, name: r.navn, minutes: r.tid };
+            });
+            renderYearTotalPdfTable(doc, machine, currentYear, yearRows);
         }
     }
 
     addPdfPageNumbers(doc);
-    doc.save("stopkodeberegner_v6_2.pdf");
-}
-
-
-</script>
+    doc.save("stopkodeberegner_v5_8.pdf");
+}-- Kontrolleret version V5.6 -->
+<!-- Stopkodeberegner - Version 5.8 -->
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stopkodeberegner - Version 5.8</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 // --- V3.9 compatibility fixes ---
 function formatYearTotalLabel(year){
@@ -1805,7 +1817,7 @@ document.addEventListener('DOMContentLoaded', function(){
 <div class="container">
     <h1>⏱️ Stop Kode Beregner</h1>
     <p class="subtitle">Analyse af stop tid pr. maskine, uge, måned og år</p>
-    <p class="version">Version 6.4</p>
+    <p class="version">Version 5.8</p>
 
     <div class="input-section">
         <label for="dataInput">📋 Indsæt data fra Excel her:</label>
@@ -2074,6 +2086,7 @@ function aggregateCodes(entries) {
     return arr;
 }
 
+
 function aggregateMissingTimeCodes(entries) {
     var map = {};
     for (var i = 0; i < entries.length; i++) {
@@ -2084,23 +2097,30 @@ function aggregateMissingTimeCodes(entries) {
     }
     var arr = [];
     for (var k = 1; k <= 16; k++) {
-        if (map[k]) arr.push({ kode: k, navn: STOPKODER[k] || ('Kode ' + k), antal: map[k] });
+        if (map[k]) {
+            arr.push({ kode: k, navn: STOPKODER[k] || ("Kode " + k), antal: map[k] });
+        }
     }
     return arr;
 }
 
 function buildMissingTimeTableHtml(rows, title) {
     rows = Array.isArray(rows) ? rows : [];
-    if (!rows.length) return '';
-    var html = '<h4>' + escapeHtml(title) + '</h4>';
-    html += '<table><thead><tr><th>Stopkode</th><th>Navn</th><th>Antal uden tid</th></tr></thead><tbody>';
+    if (!rows.length) return "";
+    var html = "<h4>" + escapeHtml(title) + "</h4>";
+    html += "<table>";
+    html += "<thead><tr><th>Stopkode</th><th>Navn</th><th>Antal uden tid</th></tr></thead><tbody>";
     var total = 0;
     for (var i = 0; i < rows.length; i++) {
         total += rows[i].antal;
-        html += '<tr><td>' + rows[i].kode + '</td><td>' + escapeHtml(rows[i].navn) + '</td><td>' + rows[i].antal + '</td></tr>';
+        html += "<tr>";
+        html += "<td>" + rows[i].kode + "</td>";
+        html += "<td>" + escapeHtml(rows[i].navn) + "</td>";
+        html += "<td>" + rows[i].antal + "</td>";
+        html += "</tr>";
     }
     html += "<tr class='total-row'><td colspan='2'>Total</td><td>" + total + "</td></tr>";
-    html += '</tbody></table>';
+    html += "</tbody></table>";
     return html;
 }
 
@@ -2174,11 +2194,7 @@ function populateFilters(entries) {
     var monthList = Object.keys(months).sort();
 
     machineSelect.innerHTML = '<option value="">Alle maskiner</option>';
-    // Force ny side ved hver maskine
-if (m > 0) {
-    doc.addPage();
-}
-
+    for (var m = 0; m < machines.length; m++) {
         machineSelect.innerHTML += '<option value="' + escapeHtml(machines[m]) + '">' + escapeHtml(machines[m]) + '</option>';
     }
 
@@ -2256,7 +2272,6 @@ function parseData(raw) {
     var ignoredLines = 0;
     var unknownMachineNames = {};
     var missingTimeCount = 0;
-    var missingTimeCount = 0;
     for (var li = 0; li < lines.length; li++) {
         var line = lines[li].trim();
         if (!line) continue;
@@ -2290,7 +2305,6 @@ function parseData(raw) {
         entries: entries,
         ignoredLines: ignoredLines,
         unknownMachineNames: Object.keys(unknownMachineNames),
-        missingTimeCount: missingTimeCount,
         missingTimeCount: missingTimeCount
     };
 }
@@ -2360,7 +2374,7 @@ function buildPeriodBlocks(machineEntries, mode) {
             if (!monthMap[mk]) monthMap[mk] = [];
             monthMap[mk].push(machineEntries[i]);
         }
-        var monthKeys = Object.keys(monthMap).sort();
+        var monthKeys = Object.keys(monthMap).sort(function(a,b){ return a.localeCompare(b); });
         for (var m = 0; m < monthKeys.length; m++) {
             blocks.push({
                 type: "month",
@@ -2536,7 +2550,6 @@ function renderResults() {
         for (var b = 0; b < blocks.length; b++) {
             html += buildTableHtml(blocks[b].rows, blocks[b].title);
             html += buildMissingTimeTableHtml(blocks[b].missingRows || [], blocks[b].title + " - Antal registreringer uden tid (?)");
-            html += buildMissingTimeTableHtml(blocks[b].missingRows || [], blocks[b].title + ' - Antal registreringer uden tid (?)');
         }
 
         var yearEntryMap = {};
@@ -2624,8 +2637,6 @@ function ryd() {
 function drawPdfFrame(doc, title, subtitle, metaLines) {
     var pageWidth = doc.internal.pageSize.getWidth();
     var pageHeight = doc.internal.pageSize.getHeight();
-    var marginLeft = 10;  // Var 12
-    var marginRight = 10;  // Var 12
 
     doc.setFillColor(255,255,255);
     doc.rect(0, 0, pageWidth, pageHeight, "F");
@@ -2637,53 +2648,33 @@ function drawPdfFrame(doc, title, subtitle, metaLines) {
     doc.setLineWidth(0.4);
     doc.line(12, 16, pageWidth - 12, 16);
 
-    var isFrontPage =
-        String(title || "") === "Stopkodeberegner" &&
-        String(subtitle || "") === "Rapport over stop tid pr. maskine";
-
-    if (isFrontPage) {
-        doc.setTextColor(210, 0, 20);
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(18);
-        doc.text(String(title || ""), 14, 26);
-
-        if (subtitle) {
-            doc.setTextColor(32, 134, 132);
-            doc.setFont("helvetica", "normal");
-            doc.setFontSize(11);
-            doc.text(String(subtitle), 14, 33);
-        }
-
-        var y = subtitle ? 41 : 36;
-        if (Array.isArray(metaLines)) {
-            doc.setTextColor(90, 90, 90);
-            doc.setFontSize(9);
-            var textWidth = pageWidth - 28;
-            var lineHeight = 4.5;
-            for (var i = 0; i < metaLines.length; i++) {
-                if (!metaLines[i]) continue;
-                var wrapped = doc.splitTextToSize(String(metaLines[i]), textWidth);
-                doc.text(wrapped, 14, y);
-                y += wrapped.length * lineHeight + 1.5;
-            }
-        }
-        return y + 3;
-    }
-
-    // Datasider: vis kun kompakt header og lad tabellen starte helt oppe
     doc.setTextColor(210, 0, 20);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(14);
-    doc.text(String(title || ""), 14, 24);
+    doc.setFontSize(18);
+    doc.text(String(title || ""), 14, 26);
 
     if (subtitle) {
         doc.setTextColor(32, 134, 132);
         doc.setFont("helvetica", "normal");
-        doc.setFontSize(9.5);
-        doc.text(String(subtitle), 14, 29);
+        doc.setFontSize(11);
+        doc.text(String(subtitle), 14, 33);
     }
 
-    return subtitle ? 33 : 28;
+    var y = subtitle ? 41 : 36;
+    if (Array.isArray(metaLines)) {
+        doc.setTextColor(90, 90, 90);
+        doc.setFontSize(9);
+        var textWidth = pageWidth - 28;
+        var lineHeight = 4.5;
+        for (var i = 0; i < metaLines.length; i++) {
+            if (!metaLines[i]) continue;
+            var wrapped = doc.splitTextToSize(String(metaLines[i]), textWidth);
+            doc.text(wrapped, 14, y);
+            y += wrapped.length * lineHeight + 1.5;
+        }
+    }
+
+    return y + 3;
 }
 
 function addPdfPageNumbers(doc) {
@@ -2699,7 +2690,7 @@ function addPdfPageNumbers(doc) {
         doc.setFont("helvetica", "normal");
         doc.setFontSize(9);
         doc.setTextColor(100, 100, 100);
-        doc.text("Stopkodeberegner v6.2", 14, pageHeight - 7);
+        doc.text("Stopkodeberegner v5.8", 14, pageHeight - 7);
         doc.text("Side " + p + " / " + totalPages, pageWidth - 14, pageHeight - 7, { align: "right" });
     }
 }
@@ -2725,16 +2716,11 @@ function renderYearTotalPdfTable(doc, machine, year, yearRows){
             formatMinutesPdf(r.minutes != null ? r.minutes : r.tid)
         ];
     });
-doc.autoTable({
-    startY: tableStartY,
-    head: [["Stopkode", "Navn", "Stop tid (min)"]],
-    body: monthRows,
-    margin: {top: 2, right: 10, bottom: 2, left: 10},
-    didDrawPage: function(data) {
-        if (data.pageNumber > 1 && data.pageNumber % 2 === 0) {
-            doc.addPage(); // Ny side ved ny maskine
-        }
-    },
+
+    doc.autoTable({
+        startY: startY,
+        head: [["Stopkode", "Navn", "Stop tid (min)"]],
+        body: bodyRows,
         foot: [["", "Årstotal", formatMinutesPdf(totalMinutes)]],
         theme: "grid",
         styles: { fillColor: [255,255,255], textColor: [0,0,0], lineColor: [180,180,180] },
@@ -2763,9 +2749,26 @@ function downloadPdf(){
         return;
     }
 
-    var entries = getFilteredEntries().filter(function(e) {
+    var entries = globalEntries.filter(function(e) {
         return selectedPdfMachines.indexOf(e.maskine) !== -1;
     });
+
+    var selectedCodes = getSelectedStopkoder();
+    if (selectedCodes.length) {
+        entries = entries.filter(function(e) { return selectedCodes.indexOf(e.kode) !== -1; });
+    }
+
+    if (document.getElementById("enableDateRange").checked) {
+        var dateFromPdf = parseInputDateValue(document.getElementById("dateFrom").value);
+        var dateToPdf = parseInputDateValue(document.getElementById("dateTo").value);
+        if (dateFromPdf) {
+            entries = entries.filter(function(e) { return e.dato >= dateFromPdf; });
+        }
+        if (dateToPdf) {
+            var endPdf = new Date(dateToPdf.getFullYear(), dateToPdf.getMonth(), dateToPdf.getDate(), 23, 59, 59, 999);
+            entries = entries.filter(function(e) { return e.dato <= endPdf; });
+        }
+    }
 
     if (!entries.length) {
         showError("Ingen data matcher de valgte filtre til PDF.");
@@ -2780,7 +2783,7 @@ function downloadPdf(){
     doc.rect(0, 0, pageWidth, 297, "F");
     doc.setTextColor(210, 0, 20);
     doc.setFontSize(24);
-    doc.text("Stop Kode Beregner v6.2", 105, 30, { align: "center" });
+    doc.text("Stop Kode Beregner v5.8", 105, 30, { align: "center" });
     doc.setTextColor(32, 134, 132);
     doc.setFontSize(14);
     doc.text("Rapport over stop tid pr. maskine", 105, 42, { align: "center" });
@@ -2837,54 +2840,49 @@ function downloadPdf(){
     }
 
     var machines = sortMachineList(Object.keys(machineMap));
-    var firstDataPage = true;
 
-  for (var m = 0; m < machines.length; m++) {
-    var machine = machines[m];
-    var machineEntries = machineMap[machine];
-    
-    // Lav ny side når maskine skifter (men ingen tom plads før)
-    if (m > 0) {
+    for (var m = 0; m < machines.length; m++) {
+        var machine = machines[m];
+        var machineEntries = machineMap[machine];
         doc.addPage();
-    }
 
-    var monthMap = {};
-
+        var monthMap = {};
         for (var j = 0; j < machineEntries.length; j++) {
             var mk = getMonthKey(machineEntries[j].dato);
             if (!monthMap[mk]) monthMap[mk] = [];
             monthMap[mk].push(machineEntries[j]);
         }
-        var monthKeys = Object.keys(monthMap).sort();
+        var monthKeys = Object.keys(monthMap).sort(function(a,b){ return a.localeCompare(b); });
+        var currentY = 14;
 
         for (var mo = 0; mo < monthKeys.length; mo++) {
-            doc.addPage();
-            firstDataPage = false;
-
             var monthKey = monthKeys[mo];
             var monthEntries = monthMap[monthKey];
             var machineTotal = 0;
             for (var tt = 0; tt < machineEntries.length; tt++) machineTotal += machineEntries[tt].tid;
-
             var monthTotal = monthEntries.reduce(function(s, e){ return s + e.tid; }, 0);
+
+            if (currentY > 220) {
+                doc.addPage();
+                currentY = 14;
+            }
+
             var tableStartY = drawPdfFrame(doc, machine, getMonthLabel(monthKey), [
                 "Samlet stop tid for maskine: " + formatMinutes(machineTotal) + " min",
                 "Månedstotal: " + formatMinutes(monthTotal) + " min"
-            ]);
+            ], currentY);
 
             var monthRows = aggregateCodes(monthEntries).map(function(r) {
                 return [String(r.kode), r.navn, formatMinutesPdf(r.tid)];
             });
 
-        doc.autoTable({
-    startY: tableStartY,
-    head: [["Stopkode", "Navn", "Stop tid (min)"]],
-    body: monthRows,
-    foot: [["", "Månedstotal", formatMinutesPdf(monthTotal)]],
-    theme: "grid",
-    margin: {top: 1, right: 8, bottom: 1, left: 8},  // VIGTIG!
-    styles: { fillColor: [255,255,255], textColor: [0,0,0], lineColor: [180,180,180], cellPadding: 1.5 },
-
+            doc.autoTable({
+                startY: tableStartY,
+                head: [["Stopkode", "Navn", "Stop tid (min)"]],
+                body: monthRows,
+                foot: [["", "Månedstotal", formatMinutesPdf(monthTotal)]],
+                theme: "grid",
+                styles: { fillColor: [255,255,255], textColor: [0,0,0], lineColor: [180,180,180] },
                 headStyles: { fillColor: [240,240,240], textColor: [0,0,0] },
                 footStyles: { fillColor: [245,245,245], textColor: [0,0,0], fontStyle: "bold" },
                 alternateRowStyles: { fillColor: [248,248,248] },
@@ -2897,6 +2895,25 @@ function downloadPdf(){
                 }
             });
 
+            var missingAgg = aggregateMissingTimeCodes(monthEntries);
+            var missingRows = missingAgg.map(function(r) {
+                return [String(r.kode), r.navn, String(r.antal)];
+            });
+            var missingTotal = missingAgg.reduce(function(s, r){ return s + r.antal; }, 0);
+            doc.autoTable({
+                startY: doc.lastAutoTable.finalY + 6,
+                head: [["Stopkode", "Navn", "Antal uden tid"]],
+                body: missingRows,
+                foot: [["", "Total uden tid", String(missingTotal)]],
+                theme: "grid",
+                styles: { fontSize: 8.5, fillColor: [255,255,255], textColor: [0,0,0], lineColor: [180,180,180] },
+                headStyles: { fillColor: [240,240,240], textColor: [0,0,0] },
+                footStyles: { fillColor: [245,245,245], textColor: [0,0,0], fontStyle: "bold" },
+                alternateRowStyles: { fillColor: [250,250,250] }
+            });
+
+            currentY = doc.lastAutoTable.finalY + 8;
+
             if (document.getElementById("groupBy").value !== "maaned") {
                 var weekMap = {};
                 for (var w = 0; w < monthEntries.length; w++) {
@@ -2906,24 +2923,21 @@ function downloadPdf(){
                     weekMap[wk].entries.push(monthEntries[w]);
                 }
                 var weekKeys = Object.keys(weekMap).sort();
-                var startY = doc.lastAutoTable.finalY + 10;
 
                 for (var k = 0; k < weekKeys.length; k++) {
                     var wkObj = weekMap[weekKeys[k]];
-                    if (startY > 245) {
+                    if (currentY > 245) {
                         doc.addPage();
-                        doc.setFillColor(255,255,255);
-                        doc.rect(0, 0, pageWidth, 297, "F");
-                        startY = drawPdfFrame(doc, machine, getMonthLabel(monthKey) + " fortsat", []);
+                        currentY = drawPdfFrame(doc, machine, getMonthLabel(monthKey) + " fortsat", [], 14);
                     }
                     doc.setTextColor(240, 165, 0);
                     doc.setFont("helvetica", "bold");
-                    doc.text(getWeekLabel(wkObj.info), 14, startY);
+                    doc.text(getWeekLabel(wkObj.info), 14, currentY);
                     var wkRows = aggregateCodes(wkObj.entries).map(function(r) {
                         return [String(r.kode), r.navn, formatMinutesPdf(r.tid)];
                     });
                     doc.autoTable({
-                        startY: startY + 3,
+                        startY: currentY + 3,
                         head: [["Stopkode", "Navn", "Stop tid (min)"]],
                         body: wkRows,
                         theme: "grid",
@@ -2938,7 +2952,7 @@ function downloadPdf(){
                             }
                         }
                     });
-                    startY = doc.lastAutoTable.finalY + 8;
+                    currentY = doc.lastAutoTable.finalY + 8;
                 }
             }
         }
@@ -2951,7 +2965,7 @@ function downloadPdf(){
     }
 
     addPdfPageNumbers(doc);
-    doc.save("stopkodeberegner_v4_8_rapport.pdf");
+    doc.save("stopkodeberegner_v5_8.pdf");
 }
 </script>
 </body>
