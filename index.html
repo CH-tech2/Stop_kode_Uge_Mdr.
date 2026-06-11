@@ -1149,6 +1149,10 @@ function drawPdfFrame(doc, title, subtitle, metaLines) {
 
     doc.setFillColor(255,255,255);
     doc.rect(0, 0, pageWidth, pageHeight, "F");
+    
+    // Mindre top-margin for bedre plads-udnyttelse
+    var topMargin = 8;  // Fra 12
+
 
     doc.setDrawColor(210, 0, 20);
     doc.setLineWidth(0.8);
@@ -1191,19 +1195,21 @@ function drawPdfFrame(doc, title, subtitle, metaLines) {
     }
 
     // Datasider: vis kun kompakt header og lad tabellen starte helt oppe
+      // Datasider: KOMPAKT header for maksimal data-plads
     doc.setTextColor(210, 0, 20);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(14);
-    doc.text(String(title || ""), 14, 24);
+    doc.setFontSize(12);  // Fra 14
+    doc.text(String(title || ""), 10, 18);  // Fra 14, 24
 
     if (subtitle) {
         doc.setTextColor(32, 134, 132);
         doc.setFont("helvetica", "normal");
-        doc.setFontSize(9.5);
-        doc.text(String(subtitle), 14, 29);
+        doc.setFontSize(8);  // Fra 9.5
+        doc.text(String(subtitle), 10, 22);  // Fra 14, 29
     }
 
-    return subtitle ? 33 : 28;
+    return subtitle ? 26 : 22;  // Fra 33 : 28
+
 }
 
 function addPdfPageNumbers(doc) {
@@ -1395,7 +1401,7 @@ function downloadPdf(){
                 alternateRowStyles: { fillColor: [248,248,248] }
             });
 
-            var nextY = doc.lastAutoTable.finalY + 4; // Mindre mellemrum
+            var nextY = doc.lastAutoTable.finalY + 2; // Mindre mellemrum
             var missingAgg = aggregateMissingTimeCodes(monthEntries);
 
             if (missingAgg.length) {
@@ -1446,12 +1452,14 @@ function downloadPdf(){
                     var wkRows = aggregateCodes(wkObj.entries).map(function(r) {
                         return [String(r.kode), r.navn, formatMinutesPdf(r.tid)];
                     });
-                    doc.autoTable({
-                        startY: startWeekY + 3,
-                        head: [["Stopkode", "Navn", "Stop tid (min)"]],
-                        body: wkRows,
-                        theme: "grid",
-                        styles: { fontSize: 7.5, fillColor: [245,245,245], textColor: [20,20,20], lineColor: [32,134,132] },
+                   doc.autoTable({
+    startY: startWeekY + 3,
+    head: [["Stopkode", "Navn", "Stop tid (min)"]],
+    body: wkRows,
+    theme: "grid",
+    margin: {top: 0, right: 8, bottom: 0, left: 8},
+    styles: { fontSize: 7, fillColor: [245,245,245], cellPadding: 1,
+ textColor: [20,20,20], lineColor: [32,134,132] },
                         headStyles: { fillColor: [240,240,240], textColor: [0,0,0] },
                         alternateRowStyles: { fillColor: [248,248,248] }
                     });
@@ -2831,11 +2839,17 @@ function downloadPdf(){
     var machines = sortMachineList(Object.keys(machineMap));
     var firstDataPage = true;
 
-    for (var m = 0; m < machines.length; m++) {
-        var machine = machines[m];
-        var machineEntries = machineMap[machine];
+  for (var m = 0; m < machines.length; m++) {
+    var machine = machines[m];
+    var machineEntries = machineMap[machine];
+    
+    // Lav ny side når maskine skifter (men ingen tom plads før)
+    if (m > 0) {
+        doc.addPage();
+    }
 
-        var monthMap = {};
+    var monthMap = {};
+
         for (var j = 0; j < machineEntries.length; j++) {
             var mk = getMonthKey(machineEntries[j].dato);
             if (!monthMap[mk]) monthMap[mk] = [];
@@ -2862,13 +2876,15 @@ function downloadPdf(){
                 return [String(r.kode), r.navn, formatMinutesPdf(r.tid)];
             });
 
-            doc.autoTable({
-                startY: tableStartY,
-                head: [["Stopkode", "Navn", "Stop tid (min)"]],
-                body: monthRows,
-                foot: [["", "Månedstotal", formatMinutesPdf(monthTotal)]],
-                theme: "grid",
-                styles: { fillColor: [255,255,255], textColor: [0,0,0], lineColor: [180,180,180] },
+        doc.autoTable({
+    startY: tableStartY,
+    head: [["Stopkode", "Navn", "Stop tid (min)"]],
+    body: monthRows,
+    foot: [["", "Månedstotal", formatMinutesPdf(monthTotal)]],
+    theme: "grid",
+    margin: {top: 1, right: 8, bottom: 1, left: 8},  // VIGTIG!
+    styles: { fillColor: [255,255,255], textColor: [0,0,0], lineColor: [180,180,180], cellPadding: 1.5 },
+
                 headStyles: { fillColor: [240,240,240], textColor: [0,0,0] },
                 footStyles: { fillColor: [245,245,245], textColor: [0,0,0], fontStyle: "bold" },
                 alternateRowStyles: { fillColor: [248,248,248] },
