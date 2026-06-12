@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stopkodeberegner - Version 5.5</title>
+    <title>Stopkodeberegner - Version 5.6</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <style>
@@ -268,7 +268,7 @@
 <div class="container">
     <h1>⏱️ Stop Kode Beregner</h1>
     <p class="subtitle">Analyse af stop tid pr. maskine, uge, måned og år</p>
-    <p class="version">Version 5.5</p>
+    <p class="version">Version 5.6</p>
 
     <div class="input-section">
         <label for="dataInput">📋 Indsæt data fra Excel her:</label>
@@ -945,6 +945,61 @@ function buildPeriodBlocks(machineEntries, mode) {
     return blocks;
 }
 
+
+function aggregateOverallStopkodeStats(entries) {
+    var map = {};
+    for (var k = 1; k <= 16; k++) {
+        map[k] = { kode: k, count: 0, totalMinutes: 0 };
+    }
+    entries = Array.isArray(entries) ? entries : [];
+    for (var i = 0; i < entries.length; i++) {
+        var e = entries[i];
+        if (!e || !map[e.kode]) continue;
+        map[e.kode].count += 1;
+        map[e.kode].totalMinutes += Number(e.tid || 0);
+    }
+    var arr = [];
+    for (var x = 1; x <= 16; x++) {
+        arr.push({
+            kode: x,
+            navn: STOPKODER[x] || ("Kode " + x),
+            count: map[x].count,
+            totalMinutes: map[x].totalMinutes
+        });
+    }
+    arr.sort(function(a, b) {
+        if (b.totalMinutes !== a.totalMinutes) return b.totalMinutes - a.totalMinutes;
+        if (b.count !== a.count) return b.count - a.count;
+        return a.kode - b.kode;
+    });
+    return arr;
+}
+
+function buildOverallSummaryTableHtml(rows, title) {
+    rows = Array.isArray(rows) ? rows : [];
+    var html = "<h4>" + escapeHtml(title || "Samlet oversigt") + "</h4>";
+    html += "<table>";
+    html += "<thead><tr><th>Stopkode</th><th>Navn</th><th>Antal gange koden er brugt</th><th>Samlet tid (min)</th></tr></thead><tbody>";
+    var totalCount = 0;
+    var totalMinutes = 0;
+    for (var i = 0; i < rows.length; i++) {
+        var count = Number(rows[i].count || rows[i].antal || 0);
+        var minutes = Number(rows[i].totalMinutes || rows[i].tid || 0);
+        totalCount += count;
+        totalMinutes += minutes;
+        html += "<tr>";
+        html += "<td>" + rows[i].kode + "</td>";
+        html += "<td>" + escapeHtml(rows[i].navn) + "</td>";
+        html += "<td>" + count + "</td>";
+        html += "<td>" + formatMinutes(minutes) + "</td>";
+        html += "</tr>";
+    }
+    html += "<tr class='total-row'><td colspan='2'>Total</td><td>" + totalCount + "</td><td>" + formatMinutes(totalMinutes) + "</td></tr>";
+    html += "</tbody></table>";
+    return html;
+}
+
+
 function renderResults() {
     if (!globalEntries.length) return;
 
@@ -1006,6 +1061,12 @@ function renderResults() {
 
         html += "</div>";
     }
+
+
+    var overallRows = aggregateOverallStopkodeStats(entries);
+    html += "<div class='machine-section'>";
+    html += buildOverallSummaryTableHtml(overallRows, "Samlet oversigt for alle maskiner");
+    html += "</div>";
 
     resultContent.innerHTML = html;
     ignoredInfo.textContent = buildIgnoredInfo();
@@ -1157,7 +1218,7 @@ function downloadPdf(){
     doc.rect(0, 0, pageWidth, 297, "F");
     doc.setTextColor(210, 0, 20);
     doc.setFontSize(24);
-    doc.text("Stop Kode Beregner v5.5", 105, 30, { align: "center" });
+    doc.text("Stop Kode Beregner v5.6", 105, 30, { align: "center" });
     doc.setTextColor(32, 134, 132);
     doc.setFontSize(14);
     doc.text("Rapport over stop tid pr. maskine", 105, 42, { align: "center" });
@@ -1277,8 +1338,31 @@ function downloadPdf(){
         }
     }
 
+
+    var overallRowsPdf = aggregateOverallStopkodeStats(entries);
+    doc.addPage();
+    var overallTotalAntal = overallRowsPdf.reduce(function(sum, row){ return sum + Number(row.count || row.antal || 0); }, 0);
+    var overallTotalTid = overallRowsPdf.reduce(function(sum, row){ return sum + Number(row.totalMinutes || row.tid || 0); }, 0);
+    var overallStartY = drawPdfFrame(doc, "Samlet oversigt", "Alle maskiner i rapporten", [
+        "Antal registreringer: " + overallTotalAntal,
+        "Samlet stop tid: " + formatMinutes(overallTotalTid) + " min"
+    ]);
+    doc.autoTable({
+        startY: overallStartY,
+        head: [["Stopkode", "Navn", "Antal gange koden er brugt", "Samlet tid (min)"]],
+        body: overallRowsPdf.map(function(r){
+            return [String(r.kode), String(r.navn), String(r.count || r.antal || 0), formatMinutesPdf(r.totalMinutes || r.tid || 0)];
+        }),
+        foot: [["", "Total", String(overallTotalAntal), formatMinutesPdf(overallTotalTid)]],
+        theme: "grid",
+        styles: { fillColor: [255,255,255], textColor: [0,0,0], lineColor: [180,180,180] },
+        headStyles: { fillColor: [240,240,240], textColor: [0,0,0], fontStyle: "bold" },
+        footStyles: { fillColor: [245,245,245], textColor: [0,0,0], fontStyle: "bold" },
+        alternateRowStyles: { fillColor: [248,248,248] }
+    });
+
     addPdfPageNumbers(doc);
-    doc.save("stopkodeberegner_v5_5.html.pdf");
+    doc.save("stopkodeberegner_v5_6_fixed2.pdf");
 }
 </script>
 </body>
